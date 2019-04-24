@@ -1,6 +1,6 @@
 
-OBJS := main.o tokenizer.o pratt.o common_functions.o
-SRCS := main.c tokenizer.c pratt.c common_functions.c
+OBJS := main.o tokenizer.o pratt.o
+SRCS := main.c tokenizer.c pratt.c
 CFLAGS := -O0 -ggdb -Wall -Wextra # -Werror
 
 CC := gcc

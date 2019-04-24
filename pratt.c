@@ -303,8 +303,13 @@ struct ast* nud(struct token* token){
 		else{			//do function call stuff
 			next();//eat up the '('
 			struct ast* temp = make_comma_tree();
-
-			expected(")", next()->str);//eats up the )
+			{//eat up the ')'
+				char* delim=next()->str;
+				if (strcmp(delim,")")!=0){
+					fprintf(stderr,"expected `%s` before `%s`", ")",delim);
+					exit(1);
+				}
+			}
 
 			temp->func_name = token;
 			temp->type=func_call;
@@ -325,9 +330,13 @@ struct ast* nud(struct token* token){
 	else if(strcmp(token->str,"(")==0){
 	//get expression , expect it to return with a ')'
 		struct ast *temp = expr(0);
-		struct token *delimiter = next();
-
-		expected(")", delimiter->str);
+		{//eat up the ')'
+			char* delim=next()->str;
+			if (strcmp(delim,")")!=0){
+				fprintf(stderr,"expected `%s` before `%s`", ")",delim);
+				exit(1);
+			}
+		}
 		ret_val=temp;
 		//maybe later add a field to the `(` that contains pointer to `)`
 	}
