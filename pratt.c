@@ -50,7 +50,8 @@ static inline int binding_power_formula(int x){
 
 enum notation{prefix, infix};
 
-static inline int infix_only(const struct token* token, enum notation n, int binding_power){
+static inline int infix_only(const struct token* token, enum notation n,
+															int binding_power){
 	switch(n){
 		case prefix:
 			fprintf(stderr,"expected an expressions before %s",
@@ -62,7 +63,8 @@ static inline int infix_only(const struct token* token, enum notation n, int bin
 					exit(1);
 	}
 }
-static inline int prefix_or_infix(enum notation n,int prefix_binding_power,int infix_binding_power){
+static inline int prefix_or_infix(enum notation n,int prefix_binding_power,
+													int infix_binding_power){
 	switch (n){
 		case prefix:	return binding_power_formula(prefix_binding_power);
 		case infix:		return binding_power_formula(infix_binding_power);
@@ -73,9 +75,10 @@ static inline int prefix_or_infix(enum notation n,int prefix_binding_power,int i
 
 int bp(const struct token* token, const enum notation n){
 /*
-	returns a binding power- how tightly does the operator bind to the operands near it
-	higher arguments to the auxilary functions (prefix_or_infix, infix_only) == less bp
-	a full expression is called with 16 so anything higher is equally tight (including ;)
+	returns a binding power- how tightly does the operator bind to the operands
+	near it	higher arguments to the auxilary functions (prefix_or_infix, 
+	infix_only) == less bp a full expression is called with 16 so anything 
+	higher is equally tight (including ;)
 */
 //need to find out how to do ?:
 	int ret_val;
@@ -141,8 +144,8 @@ int bp(const struct token* token, const enum notation n){
 		if(n==prefix)
 			ret_val = binding_power_formula(2);
 		else if(n==infix){
-			fprintf(stderr,"%s is out of place! didn't expected some expressions to it's left",
-					token->str);
+			fprintf(stderr,"%s is out of place! didn't expected some"
+			"expressions to it's left",	token->str);
 			exit (1);		
 		}
 	}
@@ -159,14 +162,14 @@ int bp(const struct token* token, const enum notation n){
 		ret_val = prefix_or_infix(n,2,4);
 	
 	else{
-		fprintf(stderr,"tried to evaluate the binding power of %s. failed miserably.",
-					token->str);
+		fprintf(stderr,"tried to evaluate the binding power of %s. failed"
+													" miserably.", token->str);
 		exit(1);
 	}
 	return ret_val;
 }
-
-static inline struct ast* make_bin_tree(struct ast* left,struct token* operator,struct ast* right){
+static inline struct ast* make_bin_tree(struct ast* left,struct token* operator,
+															struct ast* right){
 	struct ast* bin_tree = malloc( sizeof(struct ast) );
 	if (bin_tree == NULL){
 		fprintf(stderr, "can't allocate memory for a binary tree");
@@ -179,8 +182,8 @@ static inline struct ast* make_bin_tree(struct ast* left,struct token* operator,
 	};
 	return bin_tree;
 }
-
-static inline struct ast* make_unary_tree(struct ast* left, struct token* operator){
+static inline struct ast* make_unary_tree(struct ast* left,
+														struct token* operator){
 	struct ast* unary_tree = make_bin_tree(left,operator,NULL);
 	unary_tree->type = unary_op;
 	return unary_tree;
@@ -239,20 +242,23 @@ struct ast* led(struct ast* left, struct token* operator){
 			//left to right/left associative, infix/postfix operators
 				return make_bin_tree(left,operator,expr(bp(operator,infix)));
 		/*if nothing else is matched*/{
-			fprintf(stderr,"did not expect this op: \"%s\" with something to it's left\n", 
-					operator->str);
+			fprintf(stderr,"did not expect this op: \"%s\" with something to"
+												" it's left\n", operator->str);
 			exit(1);
 		}
 	}else{
 		if(operator->t==identifier){
-			fprintf(stderr,"did not expect this identifier here: %s\n", operator->str);
+			fprintf(stderr,"did not expect this identifier here: %s\n", 
+																operator->str);
 			exit(1);
 		}else if(operator->t==i_ltrl || operator->t==str_ltrl){
-			fprintf(stderr,"did not expect this literal here: %s", operator->str);
+			fprintf(stderr,"did not expect this literal here: %s",
+																operator->str);
 			exit(1);
 		}
 		else{
-			fprintf(stderr,"how did we get here? here's the OP that triggered me: %s", operator->str);
+			fprintf(stderr,"how did we get here? here's the OP that triggered"
+													" me: %s", operator->str);
 			exit(1);
 		}
 	}
@@ -348,12 +354,15 @@ struct ast* nud(struct token* token){
 }
 
 struct ast* expr(int rbp){
-    struct ast* left = nud(next());
-    while (bp(peek(),infix) > rbp)
-        left = led(left, next());
-    return left;
+	struct ast* left = nud(next());
+	while (bp(peek(),infix) > rbp)
+		left = led(left, next());
+	return left;
 }
 
+struct ast* full_expression(){
+	return expr(0);
+}
 static inline void print_indent(int i){
 	for (;i>0;i--)
 		printf("|   ");

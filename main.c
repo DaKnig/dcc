@@ -32,13 +32,7 @@ int main(){
 	printf("token stream:\n");
 	print_tokens(token_stream_head,token_stream_len);
 
-	struct ast* root = expr(0);
-	{
-		if (strcmp((token_stream++)->str,";")!=0){
-			fprintf(stderr,"expected %s before %s",";",token_stream->str);
-			exit(1);
-		}
-	}
+	struct ast* root = full_expression();
 	printf("ast:\n");
 	print_ast(root,0);
 
