@@ -16,7 +16,7 @@ struct token* token_stream;
 unsigned token_stream_len;
 
 
-struct ast{
+struct expr_ast{
 	enum ast_type type;
 	union{
 		struct{//term
@@ -24,20 +24,20 @@ struct ast{
 		};
 		struct{//op - unary, binary, ternary
 			struct token* op;
-			struct ast* term[3];
+			struct expr_ast* term[3];
 		};
 		struct{//func call,comma///fix is required!!!
 			struct token* func_name;
-			struct ast* *argv;
+			struct expr_ast* *argv;
 			int argc;
 			//pointer to a block
 		};
 	};
 };
 
-struct ast* expr(int bp);
-struct ast* full_expression();
-void print_ast(struct ast* root, int indent);
-void free_ast(struct ast* root);
+struct expr_ast* expr(int bp);
+struct expr_ast* full_expression();
+void print_expr_ast(struct expr_ast* root, int indent);
+void free_expr_ast(struct expr_ast* root);
 
 #endif

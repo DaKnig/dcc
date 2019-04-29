@@ -32,11 +32,11 @@ int main(){
 	printf("token stream:\n");
 	print_tokens(token_stream_head,token_stream_len);
 
-	struct ast* root = full_expression();
+	struct expr_ast* root = full_expression();
 	printf("ast:\n");
-	print_ast(root,0);
+	print_expr_ast(root,0);
 
-	free_ast(root);
+	free_expr_ast(root);
 	free_tokens(token_stream_head, token_stream_len);
 	return 0;
 }
