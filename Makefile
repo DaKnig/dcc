@@ -1,11 +1,8 @@
-
+SRCDIR := src
 OBJS := main.o tokenizer.o pratt.o
-SRCS := main.c tokenizer.c pratt.c
 CFLAGS := -O0 -ggdb -Wall -Wextra # -Werror
 
-CC := gcc
-
-#.SUFFIXES:
+CC ?= gcc
 
 all: main
 
@@ -15,8 +12,7 @@ test: main
 main: $(OBJS) Makefile
 	$(CC) $(CFLAGS) -o main $(OBJS)
 
-
-%.o: %.c | %.h
+%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 .PHONY: clean test
