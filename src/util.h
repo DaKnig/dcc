@@ -1,6 +1,8 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#include <stdint.h>
+
 #if !defined(__WIN32__)
 #define ANSI_RED "\033[31;1m"
 #define ANSI_BLUE "\033[34;1m"
@@ -38,6 +40,11 @@
 #ifndef COUNT_OF
 #define COUNT_OF(v) ((sizeof(v) / sizeof(0 [v])))
 #endif
+
+typedef uint8_t byte;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
 static inline void *xmalloc(size_t sz)
 {
