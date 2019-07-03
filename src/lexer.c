@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+#include "util.h"
 #include "token.h"
 #include "lexer.h"
 
@@ -52,19 +53,14 @@ void lex_initf(struct lex_context *ctx, FILE *file)
 	refill(ctx);
 }
 
-static int isidchar(int c)
-{
-	return isalnum(c) || (c == '_');
-}
-
-#define HANDLE_KEYWORD(str)                                      \
-	do {                                                     \
-		if (!strncmp(ctx->next, str, strlen(str))) {     \
-			if (!isidchar(ctx->next[strlen(str)])) { \
-				lex_tk_keyword(out, str);        \
-				goto done;                       \
-			}                                        \
-		}                                                \
+#define HANDLE_KEYWORD(str)                                          \
+	do {                                                         \
+		if (!strncmp(ctx->next, str, strlen(str))) {         \
+			if (!lex_isidchar(ctx->next[strlen(str)])) { \
+				lex_tk_keyword(out, str);            \
+				goto done;                           \
+			}                                            \
+		}                                                    \
 	} while (0)
 
 #define HANDLE_PUNCTUATOR(str)                               \

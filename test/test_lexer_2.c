@@ -4,7 +4,7 @@ int main(void){
     int id;
     lex_inits(&ctx,"signed float x");
     do
-        id=lex_getnext(&ctx);
+        id=lex_next(&ctx);
     while(id!=LEX_TKEOI);
     return 0;
 }

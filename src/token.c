@@ -3,8 +3,11 @@
 #include <stdint.h>
 #include <limits.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 
+#include "util.h"
+#include "atom.h"
 #include "token.h"
 
 int lex_tk_punct(struct lex_token *out, const char *name)
@@ -118,8 +121,14 @@ int lex_tk_identifier(struct lex_token *out, const char *str)
 	memcpy(tmp, str, len);
 	tmp[len] = '\0';
 
+	/* TODO: memleak. atom is never freed, see atom.c */
+	const char *atom = atom_fromstrwlen(tmp, len);
+	if (atom != tmp) {
+		free(tmp);
+	}
+
 	out->id = LEX_TKIDENTIFIER;
-	out->lexeme = tmp;
+	out->lexeme = atom;
 	return out->id;
 }
 

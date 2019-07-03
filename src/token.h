@@ -11,6 +11,9 @@
 #include <ctype.h>
 #include <stdbool.h>
 
+#include "util.h"
+#include "atom.h"
+
 #define MAX_TKLEN 64
 #define LEX_TKINVALID (-1)
 #define LEX_TKEOI 0
@@ -155,18 +158,11 @@ int lex_tk_punct(struct lex_token *out, const char *name);
 int lex_tk_keyword(struct lex_token *out, const char *name);
 int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
 int lex_tk_identifier(struct lex_token *out, const char *str);
-
-int lex_id(const char *str);
 bool lex_iskeyword(const char *str);
 
 static inline int lex_isidchar(int c)
 {
 	return isalnum(c) || (c == '_');
-}
-
-static inline const char *lex_tk_str(struct lex_token *tk)
-{
-	return tk->lexeme;
 }
 
 #endif
