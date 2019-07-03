@@ -1,6 +1,24 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
+#if !defined(__WIN32__)
+#define ANSI_RED "\033[31;1m"
+#define ANSI_BLUE "\033[34;1m"
+#define ANSI_BLACK "\033[30;1m"
+#define ANSI_WHITE "\033[37;1m"
+#define ANSI_YELLOW "\033[33;1m"
+#define ANSI_RESET "\033[0m"
+#else
+#define ANSI_RED
+#define ANSI_BLUE
+#define ANSI_BLACK
+#define ANSI_WHITE
+#define ANSI_YELLOW
+#define ANSI_RESET
+#endif
+
+#define ANSI_COLOR(s, c) ANSI_##c s ANSI_RESET
+
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
