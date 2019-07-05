@@ -7,12 +7,12 @@
 #include "pratt.h"
 
 //those are globals- because the whole program uses them
-extern struct token* token_stream_head;
-extern struct token* token_stream;
-extern unsigned token_stream_len;
+//extern struct token* token_stream_head;
+//extern struct token* token_stream;
+//extern unsigned token_stream_len;
 
 
-int main(){
+int main(void){
 	char str[50] = "5+6*9;";
 	const char* ops[] = {"+","-","*","/"
 						,"++","--","+=","-=","*=","/="
