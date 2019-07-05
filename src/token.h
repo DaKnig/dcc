@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include <ctype.h>
+#include <stdbool.h>
+
 #define MAX_TKLEN 64
 #define LEX_TKINVALID (-1)
 #define LEX_TKEOI 0
@@ -148,101 +151,22 @@ struct lex_token {
 	};
 };
 
-static inline int lex_tk_punct(struct lex_token *out, const char *name,
-			       int line, int col)
+int lex_tk_punct(struct lex_token *out, const char *name);
+int lex_tk_keyword(struct lex_token *out, const char *name);
+int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
+int lex_tk_identifier(struct lex_token *out, const char *str);
+
+int lex_id(const char *str);
+bool lex_iskeyword(const char *str);
+
+static inline int lex_isidchar(int c)
 {
-	assert(out != NULL);
-	assert(name != NULL);
-	int id = -1;
-
-#define XX(a, b, c)             \
-	if (!strcmp(name, c)) { \
-		assert(id < 0); \
-		id = b;         \
-	}
-	PUNCT_LIST(XX)
-#undef XX
-
-	assert(id >= 0);
-
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = id;
-	out->lexeme = name;
-
-	return id;
+	return isalnum(c) || (c == '_');
 }
 
-static inline int lex_tk_keyword(struct lex_token *out, const char *name,
-				 int line, int col)
+static inline const char *lex_tk_str(struct lex_token *tk)
 {
-	assert(name != NULL);
-	assert(out != NULL);
-	int id = -1;
-
-#define XX(a, b)                 \
-	if (!strcmp(name, #b)) { \
-		id = a;          \
-	}
-	KEYWORD_LIST(XX)
-#undef XX
-
-	assert(id >= 0);
-
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = id;
-	out->lexeme = name;
-	return out->id;
-}
-
-static inline int lex_tk_iconst(struct lex_token *out, const char *str,
-				size_t len, int line, int col)
-{
-	assert(str != NULL);
-	assert(out != NULL);
-
-	assert(len + 1 < MAX_TKLEN);
-	char tmp[MAX_TKLEN] = { 0 };
-	memcpy(tmp, str, len);
-
-	char *end = tmp;
-
-	long long num = strtoll(tmp, &end, 10);
-	if (num == LONG_MIN || num == LONG_MAX) {
-		if (errno == ERANGE) {
-			fputs("number constant too big!", stderr);
-			return LEX_TKINVALID;
-		}
-	}
-
-	assert(end != str);
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = LEX_TKICONST;
-	out->iconst = num;
-	out->lexeme = "<number>";
-
-	return out->id;
-}
-
-static inline int lex_tk_identifier(struct lex_token *out, const char *str,
-				    size_t len, int line, int col)
-{
-	assert(str != NULL);
-	assert(out != NULL);
-
-	char *buf = malloc(len + 1);
-	if (!buf) {
-		perror("malloc");
-		return LEX_TKINVALID;
-	}
-
-	memcpy(buf, str, len);
-	buf[len] = '\0';
-
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = LEX_TKIDENTIFIER;
-	out->lexeme = buf;
-
-	return out->id;
+	return tk->lexeme;
 }
 
 #endif

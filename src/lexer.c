@@ -57,20 +57,20 @@ static int isidchar(int c)
 	return isalnum(c) || (c == '_');
 }
 
-#define HANDLE_KEYWORD(str)                                          \
-	do {                                                         \
-		if (!strncmp(ctx->next, str, strlen(str))) {         \
-			if (!isidchar(ctx->next[strlen(str)])) {     \
-				lex_tk_keyword(out, str, line, col); \
-				goto done;                           \
-			}                                            \
-		}                                                    \
+#define HANDLE_KEYWORD(str)                                      \
+	do {                                                     \
+		if (!strncmp(ctx->next, str, strlen(str))) {     \
+			if (!isidchar(ctx->next[strlen(str)])) { \
+				lex_tk_keyword(out, str);        \
+				goto done;                       \
+			}                                        \
+		}                                                \
 	} while (0)
 
 #define HANDLE_PUNCTUATOR(str)                               \
 	do {                                                 \
 		if (!strncmp(ctx->next, str, strlen(str))) { \
-			lex_tk_punct(out, str, line, col);   \
+			lex_tk_punct(out, str);              \
 			goto done;                           \
 		}                                            \
 	} while (0)
@@ -108,8 +108,7 @@ int lex_getnext(struct lex_context *ctx)
 				goto io_error;
 	}
 
-	const int line = ctx->line;
-	const int col = ctx->col;
+	*out = LEX_TOKEN_INIT(ctx->line, ctx->col);
 
 	switch (*ctx->next) {
 	case '+':
@@ -240,7 +239,7 @@ int lex_getnext(struct lex_context *ctx)
 		}
 
 		ctx->next = end;
-		return lex_tk_iconst(out, begin, end - begin, line, col);
+		lex_tk_iconst(out, begin, end - begin);
 	} break;
 	case '_':
 		HANDLE_KEYWORD("_Static_assert");
@@ -355,14 +354,9 @@ int lex_getnext(struct lex_context *ctx)
 	case 'X':
 	case 'Y':
 	case 'Z':
-	identifier : {
-		const char *begin = ctx->next;
-		const char *end = begin + 1;
-
-		while (isidchar(*end))
-			end++;
-		lex_tk_identifier(out, begin, end - begin, line, col);
-	} break;
+	identifier:
+		lex_tk_identifier(out, ctx->next);
+		break;
 	case '"':
 		assert(!"string literals not implemented");
 		break;
