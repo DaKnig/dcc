@@ -1,3 +1,5 @@
+#ifndef TYPE_H
+#define TYPE_H
 enum primitive {type_int, type_char};
 
 struct type{
@@ -13,6 +15,8 @@ struct type{
 			unsigned argc;
 			struct type* argv;
 		};
-		struct type* dest;//the info about funcs
+		struct type* dest;//the info about ptrs
 	};
 };
+
+#endif

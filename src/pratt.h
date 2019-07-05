@@ -36,7 +36,7 @@ struct expr_ast{
 };
 
 struct expr_ast* expr(int bp);
-struct expr_ast* full_expression();
+struct expr_ast* full_expression(void);
 void print_expr_ast(struct expr_ast* root, int indent);
 void free_expr_ast(struct expr_ast* root);
 

@@ -173,6 +173,10 @@ int bp(const struct token* token, const enum notation n){
 }
 static inline struct expr_ast* make_bin_tree(struct expr_ast* left,struct token* operator,
 															struct expr_ast* right){
+	if (right==NULL){
+		fprintf(stderr, "encountered a NULL token. did you forget to add something to the end?");
+		exit(1);
+	}
 	struct expr_ast* bin_tree = malloc( sizeof(struct expr_ast) );
 	if (bin_tree == NULL){
 		fprintf(stderr, "can't allocate memory for a binary tree");
@@ -267,20 +271,20 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 	}
 }
 
-static inline struct token* peek(){
+static inline struct token* peek(void){
 	if(token_stream < token_stream_head + token_stream_len)
 		return token_stream;
 	else
 		return NULL;	
 }
-static inline struct token* next(){
+static inline struct token* next(void){
 	if(token_stream < &token_stream_head[token_stream_len])
 		return token_stream++;
 	else
 		return NULL;	
 }
 
-struct expr_ast* make_comma_tree(){
+struct expr_ast* make_comma_tree(void){
 	struct token* delim;
 	struct expr_ast* temp = malloc (sizeof (struct expr_ast));
 	*temp=(struct expr_ast){
@@ -357,13 +361,16 @@ struct expr_ast* nud(struct token* token){
 }
 
 struct expr_ast* expr(int rbp){
+	if (peek()==NULL){
+		return NULL;
+	}
 	struct expr_ast* left = nud(next());
-	while (bp(peek(),infix) > rbp)
+	while (peek()!=NULL&&bp(peek(),infix) > rbp)
 		left = led(left, next());
 	return left;
 }
 
-struct expr_ast* full_expression(){
+struct expr_ast* full_expression(void){
 	return expr(0);
 }
 static inline void print_indent(int i){
