@@ -75,7 +75,7 @@ static int isidchar(int c)
 		}                                            \
 	} while (0)
 
-int lex_getnext(struct lex_context *ctx)
+int lex_next(struct lex_context *ctx)
 {
 	assert(ctx != NULL);
 	struct lex_token *const out = &ctx->token;

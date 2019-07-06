@@ -33,7 +33,8 @@ struct lex_context {
 void lex_inits(struct lex_context *ctx, const char *str);
 void lex_initf(struct lex_context *ctx, FILE *file);
 void lex_setinputname(struct lex_context *ctx, const char *name);
-int lex_getnext(struct lex_context *ctx);
+int lex_next(struct lex_context *ctx);
+int lex_peek(struct lex_context *ctx);
 
 static inline bool lex_ioerror(struct lex_context *ctx)
 {
