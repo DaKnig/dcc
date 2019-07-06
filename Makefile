@@ -8,7 +8,7 @@ CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
 		-Wwrite-strings -Wredundant-decls -Wno-unused
 
 TESTS := $(BINDIR)/test_lexer_1 $(BINDIR)/test_acc_1 $(BINDIR)/test_lexer_2 \
-    $(BINDIR)/test_lexer_2b $(BINDIR)/test_logging $(BINDIR)/test_atom
+    $(BINDIR)/test_lexer_2b $(BINDIR)/test_logging $(BINDIR)/test_atom $(BINDIR)/test_lexer_3
 
 TESTER := ./src/tester.py
 

@@ -142,3 +142,16 @@ bool lex_iskeyword(const char *str)
 #undef XX
 	return false;
 }
+
+int lex_tk_string(struct lex_token *out, char *str)
+{
+	const char *atom = atom_fromstr(str);
+	if (str != atom) {
+		free(str);
+	}
+
+	out->id = LEX_TKSTRING;
+	out->lexeme = str;
+
+	return out->id;
+}

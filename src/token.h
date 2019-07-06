@@ -12,7 +12,6 @@
 #include <stdbool.h>
 
 #include "util.h"
-#include "atom.h"
 
 #define MAX_TKLEN 64
 #define LEX_TKINVALID (-1)
@@ -135,6 +134,7 @@ enum lex_tk_id {
 #undef XX
 	/* identifier */
 	LEX_TKIDENTIFIER,
+	LEX_TKSTRING,
 };
 
 struct lex_token {
@@ -158,6 +158,7 @@ int lex_tk_punct(struct lex_token *out, const char *name);
 int lex_tk_keyword(struct lex_token *out, const char *name);
 int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
 int lex_tk_identifier(struct lex_token *out, const char *str);
+int lex_tk_string(struct lex_token *out, char *str);
 bool lex_iskeyword(const char *str);
 
 static inline int lex_isidchar(int c)
