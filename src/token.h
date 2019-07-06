@@ -6,6 +6,7 @@
 #include <string.h>
 #include <limits.h>
 #include <stdint.h>
+#include <errno.h>
 
 #define MAX_TKLEN 64
 #define LEX_TKINVALID (-1)
