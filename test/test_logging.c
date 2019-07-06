@@ -15,5 +15,5 @@ int main(void)
 	log_error("testing warning message\n");
 	log_errorwloc("testing errorwloc macro\n");
 	log_warn("warn with errno:");
-	log_fatal("testing fatal message\n");
+	return 0;
 }
