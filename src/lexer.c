@@ -16,8 +16,8 @@
 
 static inline size_t nhave(struct lex_context *ctx)
 {
-	assert(ctx->end >= ctx->next);
-	return ctx->end - ctx->next;
+	assert(ctx->end > ctx->next);
+	return ctx->end - ctx->next - 1;
 }
 
 static size_t refill(struct lex_context *ctx)
@@ -59,6 +59,27 @@ void lex_initf(struct lex_context *ctx, FILE *file)
 	refill(ctx);
 }
 
+static inline bool lex_isoctal(int c)
+{
+	return c >= '0' && c <= '7';
+}
+
+static inline bool lex_ishex(int c)
+{
+	return isdigit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+static inline unsigned hexvalue(int c)
+{
+	if (isdigit(c))
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return 0;
+}
+
 static int unescape(char *dest, const char **psrc)
 {
 	assert(psrc != NULL);
@@ -68,6 +89,9 @@ static int unescape(char *dest, const char **psrc)
 	assert(*src == '\\');
 
 	switch (*++src) {
+	case '\\':
+		dest[i++] = '\\', ++src;
+		break;
 	case '\'':
 		dest[i++] = '\'', ++src;
 		break;
@@ -95,9 +119,19 @@ static int unescape(char *dest, const char **psrc)
 	case 'v':
 		dest[i++] = '\v', ++src;
 		break;
-	case 'x':
-		assert(!"hex codes not implemented");
-		break;
+	case 'x': {
+		unsigned value = 0;
+
+		while (lex_ishex(*++src)) {
+			unsigned tmp = (value << 4) + hexvalue(*src);
+			if (tmp >= 256) {
+				break;
+			}
+			value = tmp;
+		}
+
+		dest[i++] = value;
+	} break;
 	case '0':
 	case '1':
 	case '2':
@@ -105,9 +139,19 @@ static int unescape(char *dest, const char **psrc)
 	case '4':
 	case '5':
 	case '6':
-	case '7':
-		assert(!"octal codes not implemented");
-		break;
+	case '7': {
+		unsigned value = 0;
+
+		for (; lex_isoctal(*src); src++) {
+			unsigned tmp = (value << 3) + (*src - '0');
+			if (tmp >= 256) {
+				break;
+			}
+			value = tmp;
+		}
+
+		dest[i++] = value;
+	} break;
 	default:
 		log_error("bad escape sequence");
 		return -1;

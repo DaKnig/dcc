@@ -151,7 +151,7 @@ int lex_tk_string(struct lex_token *out, char *str)
 	}
 
 	out->id = LEX_TKSTRING;
-	out->lexeme = str;
+	out->lexeme = atom;
 
 	return out->id;
 }
