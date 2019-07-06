@@ -159,11 +159,18 @@ int lex_tk_keyword(struct lex_token *out, const char *name);
 int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
 int lex_tk_identifier(struct lex_token *out, const char *str);
 int lex_tk_string(struct lex_token *out, char *str);
+
 bool lex_iskeyword(const char *str);
+int lex_id(const char *str);
 
 static inline int lex_isidchar(int c)
 {
 	return isalnum(c) || (c == '_');
+}
+
+static inline void lex_tk_print(struct lex_token *tk)
+{
+	printf("%s", tk->lexeme);
 }
 
 #endif

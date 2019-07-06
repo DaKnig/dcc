@@ -16,8 +16,8 @@
 
 static inline size_t nhave(struct lex_context *ctx)
 {
-	assert(ctx->end > ctx->next);
-	return ctx->end - ctx->next - 1;
+	assert(ctx->end >= ctx->next);
+	return ctx->end - ctx->next;
 }
 
 static size_t refill(struct lex_context *ctx)
@@ -220,6 +220,10 @@ static int handle_string(struct lex_context *ctx, struct lex_token *out)
 		str[i++] = *ctx->next;
 	}
 
+	ctx->next++;
+
+	assert(i + 1 <= cap);
+
 	str[i] = '\0';
 	str = xrealloc(str, i + 1);
 
@@ -257,8 +261,14 @@ int lex_nextwdest(struct lex_context *ctx, struct lex_token *out)
 {
 	assert(ctx != NULL);
 
+	if (ctx->lookahead.id != LEX_TKINVALID) {
+		*out = ctx->lookahead;
+		ctx->lookahead.id = LEX_TKINVALID;
+		return out->id;
+	}
+
 	do {
-		if (ctx->next >= ctx->end) {
+		if (!nhave(ctx)) {
 			if (!refill(ctx)) {
 				if (lex_ioerror(ctx))
 					goto io_error;
@@ -395,6 +405,8 @@ int lex_nextwdest(struct lex_context *ctx, struct lex_token *out)
 	case '7':
 	case '8':
 	case '9': {
+		assert(!"not implemented");
+
 		const char *begin = ctx->next;
 		const char *end = ctx->next;
 		while (isdigit(*end))
@@ -535,10 +547,7 @@ int lex_nextwdest(struct lex_context *ctx, struct lex_token *out)
 		lex_tk_identifier(out, ctx->next);
 		break;
 	case '"':
-		if (handle_string(ctx, out) < 0) {
-			goto error;
-		}
-		break;
+		return handle_string(ctx, out);
 	default:
 		fprintf(stderr, "invalid char '%c'!\n", *ctx->next);
 		goto error;

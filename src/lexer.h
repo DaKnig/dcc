@@ -10,14 +10,15 @@
 
 #define MAX_UNESCAPEDLEN 4
 
-#define LEX_CTX_INIT()                         \
-	((struct lex_context){                 \
-		.next = NULL,                  \
-		.end = NULL,                   \
-		.token = LEX_TOKEN_INIT(0, 0), \
-		.stream = NULL,                \
-		.line = 0,                     \
-		.col = 0,                      \
+#define LEX_CTX_INIT()                             \
+	((struct lex_context){                     \
+		.next = NULL,                      \
+		.end = NULL,                       \
+		.lookahead = LEX_TOKEN_INIT(0, 0), \
+		.token = LEX_TOKEN_INIT(0, 0),     \
+		.stream = NULL,                    \
+		.line = 0,                         \
+		.col = 0,                          \
 	})
 
 struct lex_context {
@@ -25,6 +26,7 @@ struct lex_context {
 	const char *next, *end;
 
 	struct lex_token token;
+	struct lex_token lookahead;
 
 	const char *filename;
 
@@ -36,7 +38,11 @@ void lex_inits(struct lex_context *ctx, const char *str);
 void lex_initf(struct lex_context *ctx, FILE *file);
 void lex_setinputname(struct lex_context *ctx, const char *name);
 int lex_nextwdest(struct lex_context *ctx, struct lex_token *out);
-int lex_peek(struct lex_context *ctx);
+
+static inline int lex_peek(struct lex_context *ctx)
+{
+	return lex_nextwdest(ctx, &ctx->lookahead);
+}
 
 static inline int lex_next(struct lex_context *ctx)
 {
