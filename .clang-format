@@ -67,7 +67,7 @@ ExperimentalAutoDetectBinPacking: false
 #IncludeBlocks: Preserve # Unknown to clang-format-5.0
 IncludeCategories:
   - Regex: '.*'
-	Priority: 1
+    Priority: 1
 IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false
 #IndentPPDirectives: None # Unknown to clang-format-5.0
