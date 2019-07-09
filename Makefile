@@ -7,7 +7,7 @@ CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
 		-Wwrite-strings -Wredundant-decls -Wno-unused
 
-TESTS := bin/test_lexer_1
+TESTS := $(BINDIR)/test_lexer_1 $(BINDIR)/test_acc_1 $(BINDIR)/test_lexer_2
 
 TESTER := ./src/tester.py
 
@@ -24,7 +24,10 @@ $(BINDIR)/main: $(OBJS) Makefile
 unit-tests: $(TESTER) $(TESTS)
 	$(TESTER) $(TESTS)
 
-$(BINDIR)/test_lexer_1: test/test_lexer_1.c lexer.o
+$(BINDIR)/test_lexer_%: test/test_lexer_%.c lexer.o
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+
+$(BINDIR)/test_acc_1: test/test_acc_1.c decl_parser.o lexer.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
 
 %.o: $(SRCDIR)/%.c
