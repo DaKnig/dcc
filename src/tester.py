@@ -16,11 +16,11 @@ for test_name in sys.argv[1:]:
 		if (test_info.returncode == 0):
 			print(GREEN + "PASSED")
 			continue
-		err_msg="Error:"+test_info.returncode+":"+test_info.stderr
+		err_msg="Error:"+str(test_info.returncode)+":\n"+test_info.stderr
 	except subprocess.TimeoutExpired as te:
 		err_msg=te+" : "+te.stderr
 	except FileNotFoundError as fnf:
 		err_msg=fnf
-	print(RED,"FAILED",err_msg,sep='')
+	print(RED,"FAILED. ",CLEAR_COLOR,err_msg,sep='')
 else:
 	print(CLEAR_COLOR)

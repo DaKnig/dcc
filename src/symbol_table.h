@@ -12,7 +12,7 @@ struct symbol{
 	bool access;
 };
 
-void init_symbol_table();
+void init_symbol_table(void);
 	//this initializes the symbol table
 
 unsigned add_to_table(struct symbol);

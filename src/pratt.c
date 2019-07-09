@@ -299,7 +299,7 @@ struct expr_ast* make_comma_tree(void){
 			fprintf(stderr,"failed to realloc the comma expression");
 			exit(1);
 		}
-		temp->argv[temp->argc-1] = expr(bp(&(struct token){.str = ","}, infix));
+		temp->argv[temp->argc-1] = expr(bp(&(struct token){.str = strdup(",")}, infix));
 		delim = peek();
 	}while(strcmp(delim->str,",")==0 && (next(),1));
 	return temp;
