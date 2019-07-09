@@ -160,6 +160,13 @@ int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
 int lex_tk_identifier(struct lex_token *out, const char *str);
 int lex_tk_string(struct lex_token *out, char *str);
 
+static inline bool lex_tk_iskeyword(struct lex_token *tk);
+static inline bool lex_tk_isidentifier(struct lex_token *tk);
+static inline bool lex_tk_istypequal(struct lex_token *tk);
+static inline bool lex_tk_isstorageclass(struct lex_token *tk);
+static inline bool lex_tk_isfuncspecifier(struct lex_token *tk);
+static inline bool lex_tk_struct_or_union(struct lex_token *tk);
+
 bool lex_iskeyword(const char *str);
 int lex_id(const char *str);
 
@@ -171,6 +178,45 @@ static inline int lex_isidchar(int c)
 static inline void lex_tk_print(struct lex_token *tk)
 {
 	printf("%s", tk->lexeme);
+}
+
+static inline bool lex_tk_iskeyword(struct lex_token *tk)
+{
+#define XX(a, b)             \
+	if (tk->id == (a)) { \
+		return true; \
+	}
+	KEYWORD_LIST(XX)
+#undef XX
+	return false;
+}
+
+static inline bool lex_tk_isidentifier(struct lex_token *tk)
+{
+	return tk->id == LEX_TKIDENTIFIER;
+}
+
+static inline bool lex_tk_istypequal(struct lex_token *tk)
+{
+	return tk->id == LEX_TKCONST || tk->id == LEX_TKVOLATILE ||
+	       tk->id == LEX_TKRESTRICT || tk->id == LEX_TK_ATOMIC;
+}
+
+static inline bool lex_tk_isstorageclass(struct lex_token *tk)
+{
+	return tk->id == LEX_TKTYPEDEF || tk->id == LEX_TKEXTERN ||
+	       tk->id == LEX_TKSTATIC || tk->id == LEX_TK_THREAD_LOCAL ||
+	       tk->id == LEX_TKAUTO || LEX_TKREGISTER;
+}
+
+static inline bool lex_tk_isfuncspecifier(struct lex_token *tk)
+{
+	return tk->id == LEX_TKINLINE || tk->id == LEX_TK_NORETURN;
+}
+
+static inline bool lex_tk_struct_or_union(struct lex_token *tk)
+{
+	return tk->id == LEX_TKSTRUCT || tk->id == LEX_TKUNION;
 }
 
 #endif
