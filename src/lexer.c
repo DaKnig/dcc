@@ -361,8 +361,6 @@ int lex_getnext(struct lex_context *ctx)
 
 		while (isidchar(*end))
 			end++;
-
-		ctx->next = end;
 		lex_tk_identifier(out, begin, end - begin, line, col);
 	} break;
 	case '"':
