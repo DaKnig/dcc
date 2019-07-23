@@ -6,45 +6,15 @@
 
 #include <stdio.h>
 #include <stdlib.h> //exit
+#include <assert.h>	//assert
 #include <stddef.h>
 #include <string.h> //strcmp
-
+#include "pratt.h"
 #include "tokenizer.h"
 
 struct token* token_stream_head;
 struct token* token_stream;
-int token_stream_len;
-
-enum expr_ast_type
-{
-	term,
-	unary_op,
-	bin_op,
-	ternary_op,
-	comma,
-	func_call,
-	unprocessed
-};
-
-struct expr_ast{
-	enum expr_ast_type type;
-	union{
-		struct{//term
-			struct token* token;
-		};
-		struct{//op - unary, binary, ternary
-			struct token* op;
-			struct expr_ast* term[3];
-		};
-		struct{//func call, comma
-			struct token* func_name;
-			struct expr_ast* *argv;
-			int argc;
-			//pointer to a block
-		};
-	};
-};
-struct expr_ast* expr(int bp);
+unsigned token_stream_len;
 
 static inline int binding_power_formula(int x){
 	//based on numbers from https://en.cppreference.com/w/c/language/operator_binding_power
@@ -59,10 +29,10 @@ static inline int infix_only(const struct token* token, enum notation n,
 		case prefix:
 			fprintf(stderr,"expected an expressions before %s",
 					token->str);
-			exit (1);		
+			exit (1);
 		case infix:
 			return  binding_power_formula(binding_power);
-		default:	fprintf(stderr,"error: notation is not infix nor prefix");
+		default:	fprintf(stderr,"error: notation is neither infix nor prefix");
 					exit(1);
 	}
 }
@@ -127,7 +97,7 @@ int bp(const struct token* token, const enum notation n){
 
 	else if(strcmp(token->str, ">>")==0 ||
 			strcmp(token->str, "<<")==0)
-		ret_val = infix_only(token,n,14);
+		ret_val = infix_only(token,n,5);
 
 	else if(strcmp(token->str,">" )==0 ||
 			strcmp(token->str,"<" )==0 ||
@@ -163,7 +133,9 @@ int bp(const struct token* token, const enum notation n){
 	else if(strcmp(token->str, "+")==0 ||
 			strcmp(token->str, "-")==0)
 		ret_val = prefix_or_infix(n,2,4);
-	
+	else if(strcmp(token->str, "?")==0)
+		ret_val=infix_only(token,n,13);
+
 	else{
 		fprintf(stderr,"tried to evaluate the binding power of %s. failed"
 													" miserably.", token->str);
@@ -203,6 +175,28 @@ static inline struct expr_ast* make_term_tree(struct token* token){
 	return tmp;
 }
 
+static inline struct token* peek(void){
+	if(token_stream < token_stream_head + token_stream_len)
+		return token_stream;
+	else
+		return NULL;
+}
+static inline struct token* next(void){
+	if(token_stream < &token_stream_head[token_stream_len])
+		return token_stream++;
+	else
+		return NULL;
+}
+
+void expect_token(const char* expected){
+	//eat up the next token. crash if no match.
+	char* delim = next()->str;
+	if (strcmp(delim,expected)!=0){
+		fprintf(stderr,"expected `%s` before `%s`",":",delim);
+		exit(1);
+	}
+}
+
 struct expr_ast* led(struct expr_ast* left, struct token* operator){
 	if(operator->t == op){
 		if( strcmp(operator->str,  "=")==0 ||
@@ -219,13 +213,13 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 
 			//right to left/right associative, infix/postfix operators
 				return make_bin_tree(left,operator,expr(bp(operator,infix)-1));
-		if( strcmp(operator->str,"++")==0 ||
-			strcmp(operator->str,"--")==0 ){
+		else if( strcmp(operator->str,"++")==0 ||
+				strcmp(operator->str,"--")==0 ){
 				operator->str[0] = 'p';
 				//p+ = post increment
 				return make_unary_tree(left, operator);
 			}
-		if( strcmp(operator->str, "*")==0 ||
+		else if( strcmp(operator->str, "*")==0 ||
 			strcmp(operator->str, "/")==0 ||
 			strcmp(operator->str, "%")==0 ||
 			strcmp(operator->str, "+")==0 ||
@@ -248,8 +242,24 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			strcmp(operator->str, ",")==0)
 			//left to right/left associative, infix/postfix operators
 				return make_bin_tree(left,operator,expr(bp(operator,infix)));
-		/*if nothing else is matched*/{
-			fprintf(stderr,"did not expect this op: \"%s\" with something to"
+		else if(strcmp(operator->str,"?")==0){
+			struct expr_ast* middle = expr(0);
+				assert (("expected something after the ?",middle!=NULL && peek()->str!=NULL));
+			expect_token(":");
+			struct expr_ast* right = expr(bp(operator,infix)-1);///////////testing
+				assert (("expected something after the :",right!=NULL));
+			struct expr_ast* ternary_tree = malloc(sizeof (struct expr_ast));
+				assert (("malloc",ternary_tree!=NULL));
+			*ternary_tree = (struct expr_ast) {
+				.type = ternary_op,
+				.op = operator,
+				.term[0] = left, .term[1] = middle, .term[2] = right
+			};
+			return ternary_tree;
+		}
+		/*if nothing else is matched*/
+		else{
+			fprintf(stderr,"did not expect this op: `%s` with something to"
 												" it's left\n", operator->str);
 			exit(1);
 		}
@@ -269,19 +279,6 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			exit(1);
 		}
 	}
-}
-
-static inline struct token* peek(void){
-	if(token_stream < token_stream_head + token_stream_len)
-		return token_stream;
-	else
-		return NULL;	
-}
-static inline struct token* next(void){
-	if(token_stream < &token_stream_head[token_stream_len])
-		return token_stream++;
-	else
-		return NULL;	
 }
 
 struct expr_ast* make_comma_tree(void){
@@ -343,13 +340,7 @@ struct expr_ast* nud(struct token* token){
 	else if(strcmp(token->str,"(")==0){
 	//get expression , expect it to return with a ')'
 		struct expr_ast *temp = expr(0);
-		{//eat up the ')'
-			char* delim=next()->str;
-			if (strcmp(delim,")")!=0){
-				fprintf(stderr,"expected `%s` before `%s`", ")",delim);
-				exit(1);
-			}
-		}
+		expect_token(")");
 		ret_val=temp;
 		//maybe later add a field to the `(` that contains pointer to `)`
 	}

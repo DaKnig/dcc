@@ -8,16 +8,23 @@
 	does not check or consume the delimiter of the expression
 *******************************************************************************/
 
-enum ast_type   {term, unary_op, bin_op, ternary_op, comma, func_call,
-																unprocessed};
-
-struct token* token_stream_head;
-struct token* token_stream;
-unsigned token_stream_len;
+enum expr_ast_type
+{
+	term,
+	unary_op,
+	bin_op,
+	ternary_op,
+	comma,
+	func_call,
+	unprocessed
+};
+extern struct token* token_stream_head;
+extern struct token* token_stream;
+extern unsigned token_stream_len;
 
 
 struct expr_ast{
-	enum ast_type type;
+	enum expr_ast_type type;
 	union{
 		struct{//term
 			struct token* token;
