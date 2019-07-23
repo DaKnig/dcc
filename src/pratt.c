@@ -9,6 +9,8 @@
 #include <assert.h>	//assert
 #include <stddef.h>
 #include <string.h> //strcmp
+
+#include "util.h"
 #include "pratt.h"
 #include "tokenizer.h"
 
@@ -149,11 +151,7 @@ static inline struct expr_ast* make_bin_tree(struct expr_ast* left,struct token*
 		fprintf(stderr, "encountered a NULL token. did you forget to add something to the end?");
 		exit(1);
 	}
-	struct expr_ast* bin_tree = malloc( sizeof(struct expr_ast) );
-	if (bin_tree == NULL){
-		fprintf(stderr, "can't allocate memory for a binary tree");
-		exit(1);
-	}
+	struct expr_ast* bin_tree = xmalloc( sizeof(struct expr_ast) );
 	*bin_tree = (struct expr_ast) {
 		.type = bin_op,
 		.op = operator,
@@ -169,7 +167,7 @@ static inline struct expr_ast* make_unary_tree(struct expr_ast* left,
 }
 
 static inline struct expr_ast* make_term_tree(struct token* token){
-	struct expr_ast* tmp = malloc(sizeof(struct expr_ast));
+	struct expr_ast* tmp = xmalloc(sizeof(struct expr_ast));
 	tmp->type = term;
 	tmp->token = token;
 	return tmp;
@@ -248,8 +246,7 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			expect_token(":");
 			struct expr_ast* right = expr(bp(operator,infix)-1);///////////testing
 				assert (("expected something after the :",right!=NULL));
-			struct expr_ast* ternary_tree = malloc(sizeof (struct expr_ast));
-				assert (("malloc",ternary_tree!=NULL));
+			struct expr_ast* ternary_tree = xmalloc(sizeof (struct expr_ast));
 			*ternary_tree = (struct expr_ast) {
 				.type = ternary_op,
 				.op = operator,
@@ -283,7 +280,7 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 
 struct expr_ast* make_comma_tree(void){
 	struct token* delim;
-	struct expr_ast* temp = malloc (sizeof (struct expr_ast));
+	struct expr_ast* temp = xmalloc (sizeof (struct expr_ast));
 	*temp=(struct expr_ast){
 		.type =comma,
 		.argc =0,
@@ -291,11 +288,7 @@ struct expr_ast* make_comma_tree(void){
 		.func_name =NULL
 	};
 	do{
-		temp->argv=realloc(temp->argv, sizeof(struct expr_ast[++temp->argc]));
-		if (temp->argv==NULL){
-			fprintf(stderr,"failed to realloc the comma expression");
-			exit(1);
-		}
+		temp->argv=xrealloc(temp->argv, sizeof(struct expr_ast[++temp->argc]));
 		temp->argv[temp->argc-1] = expr(bp(&(struct token){.str = strdup(",")}, infix));
 		delim = peek();
 	}while(strcmp(delim->str,",")==0 && (next(),1));

@@ -2,6 +2,7 @@
 #define UTIL_H_
 
 #include <stdint.h>
+#include <errno.h>
 
 #if !defined(__WIN32__)
 #define ANSI_RED "\033[31;1m"
