@@ -8,6 +8,11 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include <ctype.h>
+#include <stdbool.h>
+
+#include "util.h"
+
 #define MAX_TKLEN 64
 #define LEX_TKINVALID (-1)
 #define LEX_TKEOI 0
@@ -129,6 +134,7 @@ enum lex_tk_id {
 #undef XX
 	/* identifier */
 	LEX_TKIDENTIFIER,
+	LEX_TKSTRING,
 };
 
 struct lex_token {
@@ -148,101 +154,69 @@ struct lex_token {
 	};
 };
 
-static inline int lex_tk_punct(struct lex_token *out, const char *name,
-			       int line, int col)
+int lex_tk_punct(struct lex_token *out, const char *name);
+int lex_tk_keyword(struct lex_token *out, const char *name);
+int lex_tk_iconst(struct lex_token *out, const char *str, size_t len);
+int lex_tk_identifier(struct lex_token *out, const char *str);
+int lex_tk_string(struct lex_token *out, char *str);
+
+static inline bool lex_tk_iskeyword(struct lex_token *tk);
+static inline bool lex_tk_isidentifier(struct lex_token *tk);
+static inline bool lex_tk_istypequal(struct lex_token *tk);
+static inline bool lex_tk_isstorageclass(struct lex_token *tk);
+static inline bool lex_tk_isfuncspecifier(struct lex_token *tk);
+static inline bool lex_tk_struct_or_union(struct lex_token *tk);
+
+bool lex_iskeyword(const char *str);
+int lex_id(const char *str);
+
+static inline int lex_isidchar(int c)
 {
-	assert(out != NULL);
-	assert(name != NULL);
-	int id = -1;
-
-#define XX(a, b, c)             \
-	if (!strcmp(name, c)) { \
-		assert(id < 0); \
-		id = b;         \
-	}
-	PUNCT_LIST(XX)
-#undef XX
-
-	assert(id >= 0);
-
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = id;
-	out->lexeme = name;
-
-	return id;
+	return isalnum(c) || (c == '_');
 }
 
-static inline int lex_tk_keyword(struct lex_token *out, const char *name,
-				 int line, int col)
+static inline void lex_tk_print(struct lex_token *tk)
 {
-	assert(name != NULL);
-	assert(out != NULL);
-	int id = -1;
+	printf("%s", tk->lexeme);
+}
 
-#define XX(a, b)                 \
-	if (!strcmp(name, #b)) { \
-		id = a;          \
+static inline bool lex_tk_iskeyword(struct lex_token *tk)
+{
+#define XX(a, b)             \
+	if (tk->id == (a)) { \
+		return true; \
 	}
 	KEYWORD_LIST(XX)
 #undef XX
-
-	assert(id >= 0);
-
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = id;
-	out->lexeme = name;
-	return out->id;
+	return false;
 }
 
-static inline int lex_tk_iconst(struct lex_token *out, const char *str,
-				size_t len, int line, int col)
+static inline bool lex_tk_isidentifier(struct lex_token *tk)
 {
-	assert(str != NULL);
-	assert(out != NULL);
-
-	assert(len + 1 < MAX_TKLEN);
-	char tmp[MAX_TKLEN] = { 0 };
-	memcpy(tmp, str, len);
-
-	char *end = tmp;
-
-	long long num = strtoll(tmp, &end, 10);
-	if (num == LONG_MIN || num == LONG_MAX) {
-		if (errno == ERANGE) {
-			fputs("number constant too big!", stderr);
-			return LEX_TKINVALID;
-		}
-	}
-
-	assert(end != str);
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = LEX_TKICONST;
-	out->iconst = num;
-	out->lexeme = "<number>";
-
-	return out->id;
+	return tk->id == LEX_TKIDENTIFIER;
 }
 
-static inline int lex_tk_identifier(struct lex_token *out, const char *str,
-				    size_t len, int line, int col)
+static inline bool lex_tk_istypequal(struct lex_token *tk)
 {
-	assert(str != NULL);
-	assert(out != NULL);
+	return tk->id == LEX_TKCONST || tk->id == LEX_TKVOLATILE ||
+	       tk->id == LEX_TKRESTRICT || tk->id == LEX_TK_ATOMIC;
+}
 
-	char *buf = malloc(len + 1);
-	if (!buf) {
-		perror("malloc");
-		return LEX_TKINVALID;
-	}
+static inline bool lex_tk_isstorageclass(struct lex_token *tk)
+{
+	return tk->id == LEX_TKTYPEDEF || tk->id == LEX_TKEXTERN ||
+	       tk->id == LEX_TKSTATIC || tk->id == LEX_TK_THREAD_LOCAL ||
+	       tk->id == LEX_TKAUTO || LEX_TKREGISTER;
+}
 
-	memcpy(buf, str, len);
-	buf[len] = '\0';
+static inline bool lex_tk_isfuncspecifier(struct lex_token *tk)
+{
+	return tk->id == LEX_TKINLINE || tk->id == LEX_TK_NORETURN;
+}
 
-	*out = LEX_TOKEN_INIT(line, col);
-	out->id = LEX_TKIDENTIFIER;
-	out->lexeme = buf;
-
-	return out->id;
+static inline bool lex_tk_struct_or_union(struct lex_token *tk)
+{
+	return tk->id == LEX_TKSTRUCT || tk->id == LEX_TKUNION;
 }
 
 #endif

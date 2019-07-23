@@ -23,13 +23,13 @@ int main(void){
         1,
     };
     struct lex_context ctx;
-    
+
     for (unsigned i=0;i<sizeof cdecls/sizeof *cdecls;i++){
         lex_inits(&ctx,cdecls[i]);
         int id;
         int acc_status=0;
         uint32_t current_type=0;
-        for(id=lex_getnext(&ctx) ; acc_status==0&&id!=LEX_TKEOI ; id=lex_getnext(&ctx))
+        for(id=lex_next(&ctx) ; acc_status==0&&id!=LEX_TKEOI ; id=lex_next(&ctx))
             acc_status = accumulate(id,&current_type);
         if(acc_status!=expected_status[i]){
             fprintf(stderr,"for input '%s':\n",cdecls[i]);

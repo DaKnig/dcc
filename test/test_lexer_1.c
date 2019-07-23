@@ -20,7 +20,7 @@ void test_puncts(void)
 
 #define XX(a, b, c)                                                     \
 	do {                                                            \
-		const int id = lex_getnext(&ctx);                       \
+		const int id = lex_next(&ctx);                          \
 		printf("id: %3d lexeme: '%s'\n", id, ctx.token.lexeme); \
                                                                         \
 		fflush(stdout);                                         \
@@ -46,7 +46,7 @@ void test_keywords(void)
 
 #define XX(a, b)                                                        \
 	do {                                                            \
-		const int id = lex_getnext(&ctx);                       \
+		const int id = lex_next(&ctx);                          \
 		printf("id: %3d lexeme: '%s'\n", id, ctx.token.lexeme); \
                                                                         \
 		fflush(stdout);                                         \
