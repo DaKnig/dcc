@@ -1,6 +1,7 @@
 SRCDIR := src
 TESTSDIR := test
 BINDIR := bin
+FUZZDIR := fuzz
 OBJS := main.o lexer.o tokenizer.o pratt.o token.o log.o atom.o
 CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
     	-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
@@ -38,10 +39,27 @@ $(BINDIR)/test_logging: test/test_logging.c log.o
 $(BINDIR)/test_atom: test/test_atom.c atom.o log.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
 
+$(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
+$(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
+	
+
 %.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-.PHONY: clean memtest test-unit run
+.PHONY: clean memtest unit-tests fuzz run
+fuzz: $(BINDIR)/fuzz_lexer
+	# Usage:
+	# FUZZ_OUT=outdir make fuzz
+	# If you have a SSD, you should ideally place outdir on a ramdisk:
+	# cd /tmp && mkdir afl
+	# chmod 777 afl
+	# sudo mount -t tmpfs -o size=256M tmpfs /tmp/afl
+	# mkdir afl
+	# Then back in the project directory:
+	# FUZZ_OUT=/tmp/afl make fuzz
+	afl-fuzz -i $(FUZZDIR)/in -o $(FUZZ_OUT) ./$(BINDIR)/fuzz_lexer
+
 clean:
 	rm -f *.o
 	rm -f main
