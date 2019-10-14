@@ -2,7 +2,8 @@
 #define TOKENIZER_H
 
 enum token_type{
-		op, i_ltrl, str_ltrl, identifier,
+	op, i_ltrl, str_ltrl, identifier,keyword,
+	
 };
 struct token{
 	char* str;

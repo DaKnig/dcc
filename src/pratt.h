@@ -7,6 +7,7 @@
 	It advances the token_stream only when a token is consumed, meaning that it
 	does not check or consume the delimiter of the expression
 *******************************************************************************/
+struct context;
 
 enum expr_ast_type
 {
@@ -18,9 +19,6 @@ enum expr_ast_type
 	func_call,
 	unprocessed
 };
-extern struct token* token_stream_head;
-extern struct token* token_stream;
-extern unsigned token_stream_len;
 
 
 struct expr_ast{
@@ -42,8 +40,8 @@ struct expr_ast{
 	};
 };
 
-struct expr_ast* expr(int bp);
-struct expr_ast* full_expression(void);
+struct expr_ast* expr(int bp, struct context* input);
+// struct expr_ast* full_expression(void);
 void print_expr_ast(struct expr_ast* root, int indent);
 void free_expr_ast(struct expr_ast* root);
 

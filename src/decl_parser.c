@@ -40,7 +40,7 @@
 
 
 #include "symbol_table.h"
-#include "tokenizer.h"
+#include "new_tokenizer.h"
 #include "pratt.h"
 #include "type.h"
 #include "lexer.h"
@@ -107,6 +107,7 @@ enum type_quals_mask{
 };
 
 int accumulate(int t_id,uint32_t* specs){
+       // TODO: add a special case for '*', "struct"...
 //	current type saved in specs. new token in t.
 //	returns 0 if accumulated successfully into specs
 //	returns 1 if encountered an identifier
@@ -184,6 +185,24 @@ accumulate_sign:
         *specs|=mask;
         return 0;
     }
+}
+void full_decl(struct lex_context* ctx){
+    struct type base_type={.general_type=var, .id=SPEC_NONE};//for now only parse vers
+    struct type var_type={.general_type=var, .id=SPEC_NONE};
+        //the details about the specific variable
+    int result, next_token;
+    do{
+        next_token=lex_next(ctx);
+        result=accumulate(next_token,&base_type.id);
+    }while(result==0);
+    if (result == 2)
+        exit(fprintf(stderr,"conflicting type specifiers"));
+            // TODO: add better diagnostycs based on line number and such
+    if (result == 3)
+        exit(fprintf(stderr,"SOMETHING HAPPEND"));
+
+    // TODO: do something about pointers
+    
 }
 /*
 void full_decl(void){

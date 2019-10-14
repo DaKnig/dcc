@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #if !defined(__WIN32__)
 #define ANSI_RED "\033[31;1m"

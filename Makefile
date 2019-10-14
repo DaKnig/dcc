@@ -2,21 +2,22 @@ SRCDIR := src
 TESTSDIR := test
 BINDIR := bin
 FUZZDIR := fuzz
-OBJS := main.o lexer.o tokenizer.o pratt.o token.o log.o atom.o
+OBJS := main.o pratt.o token.o log.o atom.o symbol_table.o\
+		statement_parser.o new_tokenizer.o
 CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
     	-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
 		-Wwrite-strings -Wredundant-decls -Wno-unused
 
 TESTS := $(BINDIR)/test_lexer_1 $(BINDIR)/test_acc_1 $(BINDIR)/test_lexer_2 \
-    $(BINDIR)/test_lexer_2b $(BINDIR)/test_logging $(BINDIR)/test_atom $(BINDIR)/test_lexer_3 \
-    $(BINDIR)/test_lexer_4
+    $(BINDIR)/test_lexer_2b $(BINDIR)/test_logging $(BINDIR)/test_atom \
+	$(BINDIR)/test_lexer_3 $(BINDIR)/test_lexer_4 $(BINDIR)/test_sym_table
 
 TESTER := ./src/tester.py
 
 CC ?= gcc
 
-all: $(BINDIR)/main unit-tests
+all: $(BINDIR)/main #unit-tests
 
 memtest: $(BINDIR)/main
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all -v ./main
@@ -43,6 +44,8 @@ $(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
 $(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 	
+$(BINDIR)/test_sym_table: test/test_sym_table.c symbol_table.o decl_parser.o lexer.o
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
 
 %.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<

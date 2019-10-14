@@ -12,7 +12,7 @@
 
 #include "util.h"
 #include "pratt.h"
-#include "tokenizer.h"
+#include "new_tokenizer.h"
 
 struct token* token_stream_head;
 struct token* token_stream;
@@ -173,30 +173,22 @@ static inline struct expr_ast* make_term_tree(struct token* token){
 	return tmp;
 }
 
-static inline struct token* peek(void){
-	if(token_stream < token_stream_head + token_stream_len)
-		return token_stream;
-	else
-		return NULL;
-}
-static inline struct token* next(void){
-	if(token_stream < &token_stream_head[token_stream_len])
-		return token_stream++;
-	else
-		return NULL;
-}
+// static inline struct token* peek(void){
+// 	if(token_stream < token_stream_head + token_stream_len)
+// 		return token_stream;
+// 	else
+// 		return NULL;
+// }
+// static inline struct token* next(void){
+// 	if(token_stream < &token_stream_head[token_stream_len])
+// 		return token_stream++;
+// 	else
+// 		return NULL;
+// }
 
-void expect_token(const char* expected){
-	//eat up the next token. crash if no match.
-	char* delim = next()->str;
-	if (strcmp(delim,expected)!=0){
-		fprintf(stderr,"expected `%s` before `%s`",":",delim);
-		exit(1);
-	}
-}
-
-struct expr_ast* led(struct expr_ast* left, struct token* operator){
-	if(operator->t == op){
+static inline struct expr_ast* led(struct expr_ast* left,struct token*operator,
+														struct context* input){
+	if(operator->t == t_punctuator){
 		if( strcmp(operator->str,  "=")==0 ||
 			strcmp(operator->str, "+=")==0 ||
 			strcmp(operator->str, "-=")==0 ||
@@ -210,7 +202,7 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			strcmp(operator->str, "|=")==0)
 
 			//right to left/right associative, infix/postfix operators
-				return make_bin_tree(left,operator,expr(bp(operator,infix)-1));
+				return make_bin_tree(left,operator,expr(bp(operator,infix)-1,input));
 		else if( strcmp(operator->str,"++")==0 ||
 				strcmp(operator->str,"--")==0 ){
 				operator->str[0] = 'p';
@@ -239,12 +231,14 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			strcmp(operator->str,"!=")==0 ||
 			strcmp(operator->str, ",")==0)
 			//left to right/left associative, infix/postfix operators
-				return make_bin_tree(left,operator,expr(bp(operator,infix)));
+				return make_bin_tree(left,operator,
+											expr(bp(operator,infix), input));
 		else if(strcmp(operator->str,"?")==0){
-			struct expr_ast* middle = expr(0);
-				assert (("expected something after the ?",middle!=NULL && peek()->str!=NULL));
-			expect_token(":");
-			struct expr_ast* right = expr(bp(operator,infix)-1);///////////testing
+			struct expr_ast* middle = expr(0,input);
+				assert (("expected something after the ?",
+								middle!=NULL && peek(input)->str!=NULL));
+			expect_token(":",input);
+			struct expr_ast* right = expr(bp(operator,infix)-1 ,input);///////////testing
 				assert (("expected something after the :",right!=NULL));
 			struct expr_ast* ternary_tree = xmalloc(sizeof (struct expr_ast));
 			*ternary_tree = (struct expr_ast) {
@@ -261,11 +255,11 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 			exit(1);
 		}
 	}else{
-		if(operator->t==identifier){
+		if(operator->t==t_identifier){
 			fprintf(stderr,"did not expect this identifier here: %s\n", 
 																operator->str);
 			exit(1);
-		}else if(operator->t==i_ltrl || operator->t==str_ltrl){
+		}else if(operator->t==t_int || operator->t==t_string){
 			fprintf(stderr,"did not expect this literal here: %s",
 																operator->str);
 			exit(1);
@@ -278,7 +272,7 @@ struct expr_ast* led(struct expr_ast* left, struct token* operator){
 	}
 }
 
-struct expr_ast* make_comma_tree(void){
+struct expr_ast* make_comma_tree(struct context* input){
 	struct token* delim;
 	struct expr_ast* temp = xmalloc (sizeof (struct expr_ast));
 	*temp=(struct expr_ast){
@@ -289,25 +283,26 @@ struct expr_ast* make_comma_tree(void){
 	};
 	do{
 		temp->argv=xrealloc(temp->argv, sizeof(struct expr_ast[++temp->argc]));
-		temp->argv[temp->argc-1] = expr(bp(&(struct token){.str = strdup(",")}, infix));
-		delim = peek();
-	}while(strcmp(delim->str,",")==0 && (next(),1));
+		temp->argv[temp->argc-1] = expr(
+						bp(&(struct token){.str = strdup(",")}, infix),input);
+		delim = peek(input);
+	}while(strcmp(delim->str,",")==0 && (next(input),1));
 	return temp;
 }
 
-struct expr_ast* nud(struct token* token){
+struct expr_ast* nud(struct token* token,struct context* input){
 	struct expr_ast* ret_val;
-	if(token->t == i_ltrl || token->t == str_ltrl)
+	if(token->t == t_int || token->t == t_string)
 		ret_val= make_term_tree(token);
 
-	else if(token->t == identifier){
-		if (strcmp (peek()->str, "(") != 0)
-			ret_val= make_term_tree(token);			
+	else if(token->t == t_identifier){
+		if (strcmp (peek(input)->str, "(") != 0)
+			ret_val= make_term_tree(token);
 		else{			//do function call stuff
-			next();//eat up the '('
-			struct expr_ast* temp = make_comma_tree();
+			next(input);//eat up the '('
+			struct expr_ast* temp = make_comma_tree(input);
 			{//eat up the ')'
-				char* delim=next()->str;
+				char* delim=next(input)->str;
 				if (strcmp(delim,")")!=0){
 					fprintf(stderr,"expected `%s` before `%s`", ")",delim);
 					exit(1);
@@ -329,11 +324,11 @@ struct expr_ast* nud(struct token* token){
 	   strcmp(token->str,"&" )==0 ||
 	   strcmp(token->str,"++")==0 ||
 	   strcmp(token->str,"--")==0)
-		return make_unary_tree(expr(bp(token,prefix) - 1) , token);
+		return make_unary_tree(expr(bp(token,prefix) - 1,input) , token);
 	else if(strcmp(token->str,"(")==0){
 	//get expression , expect it to return with a ')'
-		struct expr_ast *temp = expr(0);
-		expect_token(")");
+		struct expr_ast *temp = expr(0,input);
+		expect_token(")",input);
 		ret_val=temp;
 		//maybe later add a field to the `(` that contains pointer to `)`
 	}
@@ -344,19 +339,19 @@ struct expr_ast* nud(struct token* token){
 	return ret_val;
 }
 
-struct expr_ast* expr(int rbp){
-	if (peek()==NULL){
+struct expr_ast* expr(int rbp,struct context* input){
+	if (peek(input)==NULL){
 		return NULL;
 	}
-	struct expr_ast* left = nud(next());
-	while (peek()!=NULL&&bp(peek(),infix) > rbp)
-		left = led(left, next());
+	struct expr_ast* left = nud(next(input),input);
+	while (peek(input)!=NULL&&bp(peek(input),infix) > rbp)
+		left = led(left, next(input), input);
 	return left;
 }
 
-struct expr_ast* full_expression(void){
-	return expr(0);
-}
+// struct expr_ast* full_expression(void){
+// 	return expr(0);
+// }
 static inline void print_indent(int i){
 	for (;i>0;i--)
 		printf("|   ");
@@ -367,28 +362,28 @@ void print_expr_ast(struct expr_ast* root, int indent){
 	print_indent(indent);
 	switch (root->type){
 		case term:
-			print_tokens(root->token, 1);
+			print_token(root->token);
 			break;
 
 		case ternary_op:
-			print_tokens(root->op, 1);
+			print_token(root->op);
 			for(int i=0;i<3;i++)
 				print_expr_ast(root->term[i], indent+1);
 			break;
 
 		case bin_op:
-			print_tokens(root->op, 1);
+			print_token(root->op);
 			for(int i=0;i<2;i++)
 				print_expr_ast(root->term[i], indent+1);
 			break;
 
 		case unary_op:
-			print_tokens(root->op, 1);
+			print_token(root->op);
 			print_expr_ast(root->term[0], indent+1);
 			break;
 
 		case func_call:
-			print_tokens(root->func_name, 1);
+			print_token(root->func_name);
 			for (int i=0; i<root->argc; i++){
 				print_expr_ast(root->argv[i],indent+1);
 			}

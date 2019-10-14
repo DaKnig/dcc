@@ -22,4 +22,6 @@ struct type{
 	};
 };
 
+void print_type(const struct type*);
+
 #endif
