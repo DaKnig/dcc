@@ -2,7 +2,7 @@ SRCDIR := src
 TESTSDIR := test
 BINDIR := bin
 FUZZDIR := fuzz
-OBJS := main.o pratt.o token.o log.o atom.o symbol_table.o\
+OBJS := main.o pratt.o log.o atom.o \
 		statement_parser.o new_tokenizer.o
 CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
     	-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
@@ -29,23 +29,23 @@ unit-tests: $(TESTER) $(TESTS)
 	$(TESTER) $(TESTS)
 
 $(BINDIR)/test_lexer_%: test/test_lexer_%.c lexer.o token.o atom.o log.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/test_acc_1: test/test_acc_1.c decl_parser.o lexer.o token.o atom.o log.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/test_logging: test/test_logging.c log.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/test_atom: test/test_atom.c atom.o log.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
 $(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
-	
+
 $(BINDIR)/test_sym_table: test/test_sym_table.c symbol_table.o decl_parser.o lexer.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)" 
+	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 %.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
