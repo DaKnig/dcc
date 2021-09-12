@@ -1,0 +1,113 @@
+========== TODO ===========
+
+=== STRUCTS ===
+[ ] allow backend to reorder, allign, and pad struct fields
+
+=== INSTRUCTIONS ===
+[ ] shift and rotate operators [+ carry]
+
+========== BASICS ==========
+
+=== REQUIREMENTS ===
+SSA [static single assigment]
+GBDK compatibility
+functions
+labels
+structs
+[arrays = pointers, like C]
+
+=== TYPES ===
+u8 u16 u32 u64         [>u<nsigned int]
+i8 i16 i32 i64         [>i<nt]
+       f32 f64         [>f<loat]
+p farp                 [>p<ointer]
+void
+
+========== SYNTAX ==========
+identifiers:     [a-zA-Z@%_][a-zA-Z0-9@%_]*
+octal numbers:   0[0-7]+
+decimal numbers: [1-9][0-9]+
+hex numbers:     0x[0-9a-fA-F]+
+comments:        \/\/.*?$
+
+=== STRUCTS ===
+struct identifier {
+    type label : offset + pointeroffset p;
+}
+
+=== FUNCTIONS ===
+type [[trait-list]] ident(arg-list) {
+    stat-list
+}
+
+=== INSTRUCTIONS / STATEMENTS ===
+loc: stmt
+|    label ":" stmt
+;
+
+stmt: var "=" ( const-or-var binop const-or-var ";"
+              | unop const-or-var ";"
+              | IDENT "(" arg-list ")" ";"
+              // NOTE: phi() is a special case, and can take a variable amount of arguments
+              )
+|     "jmp" cond "," label 
+|     "return" const-or-var? ";"
+;
+
+var-decl: type var
+label: IDENT
+var: IDENT
+
+type: "u8" | "u16" | "u32" | "u64"
+|     "i8" | "i16" | "i32" | "i64"
+|                    "f32" | "f64"
+|     "p"  | "farp"
+|     "void"
+;
+
+unop: "!" | "-" | "*" | "&" | "~";
+binop: "+" | "-" | "*" | "/" | "&" | "|" | "^" | "&&"
+     | "||" | "mod" | "<<" | ">>";
+condop: "<" | ">" | ">=" | "<=" | "!=" | "==";
+
+cond: condop ( "0"
+             | "0xff"
+             | "0xffff"
+             | "0xffffff"
+             | "0xffffffffffffffff"
+             )
+;
+
+const-or-var: IDENT
+|             const
+;
+
+const: OCTALVAL
+|      DECVAL
+|      HEXVAL
+|      "@OFFSET" "(" IDENT[name] "." IDENT[field] ")"
+|      "@SIZE" "(" IDENT[name] ")"
+;
+
+=== EXAMPLES ===
+
+u8 [[ noninline pure ]] add(u8 lhs, u8 rhs) {
+    u8 %tmp1 = lhs + rhs;                  // \ return lhs + rhs;
+    return %tmp1;                          // /
+}
+
+u8 [[ noninline pure ]] fib(u8 i) {
+  start:
+    u8 %tmp1 = i - 1;                      // \ if (i <= 1)  
+    jmp <=0, return                        // /     return;
+    jmp after                              // [ fall-through, probably required for (e)bb ]
+  after:                                   // 
+    u8 %tmp2 = i - 2;                      // \
+    u8 %tmp3 = fib(%tmp1);                 // | uint_8 %tmp5 = fib(i - 1) + fib(i - 2);
+    u8 %tmp4 = fib(%tmp2);                 // | return %tmp5;
+    u8 %tmp5 = %tmp3 + %tmp4;              // /
+    jmp return                             // 
+  return:                                  // 
+    u8 %tmp6 = phi(start, 1, after, %tmp5) // [  return label, because  ]
+    return %tmp6;                          // [ SSA requires >one< exit ]
+}
