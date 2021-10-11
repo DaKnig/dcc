@@ -1,20 +1,38 @@
 ========== TODO ===========
 
 === STRUCTS ===
-[ ] allow backend to reorder, allign, and pad struct fields
+[ ] allow frontend to reorder, allign, and pad struct fields
 
 === INSTRUCTIONS ===
 [ ] shift and rotate operators [+ carry]
 
 ========== BASICS ==========
 
-=== REQUIREMENTS ===
+=== GOALS ===
 SSA [static single assigment]
 GBDK compatibility
 functions
 labels
 structs
 [arrays = pointers, like C]
+
+========== ABSTRACT ==========
+DCC IR is the internal representation of the DCC toolset. it is the file type
+that is emitted by frontends and consumed by backends. this helps multi
+platform optimizations via the so-called "middle-end"- a machine agnostic
+optimization/analysis pass which takes in DCC IR and outputs DCC IR.
+
+DCC IR is a RTL in SSA form. it assumes that there is an infinite number of
+typed registers, each assigned only once. it is job of the writer to make sure
+those assumptions are held to ensure future consumers of the data don't have
+to waste time to check them.
+
+the types of the registers are described here.
+
+DCC IR uses @PHI to denote the special phi function.
+
+the syntax is described in something between Bison and Regex, any contibutions
+are welcome.
 
 === TYPES ===
 u8 u16 u32 u64         [>u<nsigned int]
@@ -24,20 +42,30 @@ p farp                 [>p<ointer]
 void
 
 ========== SYNTAX ==========
-identifiers:     [a-zA-Z@%_][a-zA-Z0-9@%_]*
-octal numbers:   0[0-7]+
-decimal numbers: [1-9][0-9]+
-hex numbers:     0x[0-9a-fA-F]+
-comments:        \/\/.*?$
+identifier:     [a-zA-Z@%_][a-zA-Z0-9@%_]*
+decimal_number: [1-9][0-9]+
+octal number:   0[0-7]+
+hex number:     0x[0-9a-fA-F]+
+comment:        \/\/.*$
 
 === STRUCTS ===
+structs in DCC IR are the combination of unions and structs in C.
+each field is consists of a name and an offset.
+offset is in units of bytes+pointers.
+pointers have different size depending on the backend.
+
 struct identifier {
-    type label : offset + pointeroffset p;
+    type identifier ":" decimal_number "+" decimal_number "p" ";"
 }
 
 === FUNCTIONS ===
-type [[trait-list]] ident(arg-list) {
-    stat-list
+a function consists of a return type, trait-list, name, argument list.
+the trait-list is optional space separated list of traits- tools may either
+use the information inside the trait-list or ignore it. 
+for example, a function might be "pure" which means that it is stateless.
+
+type [[trait-list]] identifier(arg-list) {
+    loc-list
 }
 
 === INSTRUCTIONS / STATEMENTS ===
@@ -45,18 +73,22 @@ loc: stmt
 |    label ":" stmt
 ;
 
-stmt: var "=" ( const-or-var binop const-or-var ";"
-              | unop const-or-var ";"
-              | IDENT "(" arg-list ")" ";"
-              // NOTE: phi() is a special case, and can take a variable amount of arguments
-              )
-|     "jmp" cond "," label 
-|     "return" const-or-var? ";"
+stmt:
+    var_decl "=" ( const-or-var binop const-or-var ";"
+                 | unop const-or-var ";"
+                 | identifier "(" arg-list ")" ";" // function call
+                 // NOTE: @PHI() is a special case of a function call!
+                 )
+|   "jmp" cond "," label ";"
+|	"return" const-or-var? ";" // optional return value
 ;
 
-var-decl: type var
-label: IDENT
-var: IDENT
+unop: "!" | "-" | "*" | "&" | "~";
+binop: "+" | "-" | "*" | "/" | "&" | "|" | "^" | "&&"
+     | "||" | "mod" | "<<" | ">>";
+
+var-decl: type identifier
+label: identifier
 
 type: "u8" | "u16" | "u32" | "u64"
 |     "i8" | "i16" | "i32" | "i64"
@@ -65,9 +97,6 @@ type: "u8" | "u16" | "u32" | "u64"
 |     "void"
 ;
 
-unop: "!" | "-" | "*" | "&" | "~";
-binop: "+" | "-" | "*" | "/" | "&" | "|" | "^" | "&&"
-     | "||" | "mod" | "<<" | ">>";
 condop: "<" | ">" | ">=" | "<=" | "!=" | "==";
 
 cond: condop ( "0"
@@ -78,15 +107,19 @@ cond: condop ( "0"
              )
 ;
 
-const-or-var: IDENT
+const-or-var: identifier
 |             const
 ;
 
 const: OCTALVAL
 |      DECVAL
 |      HEXVAL
-|      "@OFFSET" "(" IDENT[name] "." IDENT[field] ")"
-|      "@SIZE" "(" IDENT[name] ")"
+|      "@OFFSET" "(" identifier "." identifier ")" 
+       // this returns a constant representing the offset of a field within
+       // a struct. the first identifier is the struct type, the second is
+       // the name of the field.
+|      "@SIZE" "(" identifier ")"
+       // returns the size of a struct- like `sizeof` in C.
 ;
 
 === EXAMPLES ===
@@ -97,17 +130,17 @@ u8 [[ noninline pure ]] add(u8 lhs, u8 rhs) {
 }
 
 u8 [[ noninline pure ]] fib(u8 i) {
-  start:
+  @start:
     u8 %tmp1 = i - 1;                      // \ if (i <= 1)  
-    jmp <=0, return                        // /     return;
+    jmp <=0, @end                          // /     return;
     jmp after                              // [ fall-through, probably required for (e)bb ]
-  after:                                   // 
+  @after:                                  // 
     u8 %tmp2 = i - 2;                      // \
     u8 %tmp3 = fib(%tmp1);                 // | uint_8 %tmp5 = fib(i - 1) + fib(i - 2);
     u8 %tmp4 = fib(%tmp2);                 // | return %tmp5;
     u8 %tmp5 = %tmp3 + %tmp4;              // /
     jmp return                             // 
-  return:                                  // 
-    u8 %tmp6 = phi(start, 1, after, %tmp5) // [  return label, because  ]
+  @end:                                    // 
+    u8 %tmp6 = @PHI(@start, 1, @after, %tmp5) // [  return label, because  ]
     return %tmp6;                          // [ SSA requires >one< exit ]
 }
