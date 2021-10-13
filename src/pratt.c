@@ -23,8 +23,6 @@ static inline int binding_power_formula(int x){
 	return (10*(16-x));
 }
 
-enum notation{prefix, infix};
-
 static inline int infix_only(const struct token* token, enum notation n,
 															int binding_power){
 	switch(n){

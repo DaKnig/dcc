@@ -40,6 +40,12 @@ struct expr_ast{
 	};
 };
 
+enum notation{prefix, infix};
+int bp(const struct token* token, const enum notation n);
+/*
+  returns a binding power suitable for use in expr()
+*/
+
 struct expr_ast* expr(int bp, struct context* input);
 // struct expr_ast* full_expression(void);
 void print_expr_ast(struct expr_ast* root, int indent);

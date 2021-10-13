@@ -2,30 +2,11 @@
 #include "pratt.h"
 #include "new_tokenizer.h"
 #include "util.h"
+#include "decl_parser.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-struct declaration {	/////REMOV
-	char* name;
-	enum {d_int, d_char} type;
-};
-
-
-struct declaration* parse_declaration(struct context* input){
-		/////a very crude declaration parser. REMOV
-		//expected format: `int name;` or `char name;`
-	struct declaration* ret_val=xmalloc(sizeof *ret_val);
-	if (strcmp(peek(input)->str,"int")==0)
-		ret_val->type=d_int;
-	else if (strcmp(peek(input)->str,"char")==0)
-		ret_val->type=d_char;
-	next(input);
-	ret_val->name = strdup(next(input)->str);
-	expect_token(";",input);
-	return ret_val;
-}
 
 static inline int is_type(char* str){
     char types[][8] = {
@@ -143,12 +124,6 @@ struct statement* parse_statement(struct context* input){
 		expect_token(";",input);
 	}
 	return s;
-}
-
-void print_declaration(struct declaration* d, int indent){
-	char types[][8]={"int","char"};
-	for (;indent!=0;indent--)	printf("    ");
-	printf("%s %s\n", types[d->type], d->name);
 }
 
 void print_statement(struct statement* s, int indent){
