@@ -2,16 +2,16 @@ SRCDIR := src
 TESTSDIR := test
 BINDIR := bin
 FUZZDIR := fuzz
-OBJS := main.o pratt.o log.o atom.o \
-		statement_parser.o new_tokenizer.o
-CFLAGS :=-O0 -ggdb -Wall -Wextra -Wshadow -Wcast-qual \
-    	-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
+
+OBJS := pratt.o log.o atom.o statement_parser.o new_tokenizer.o \
+		decl_parser.o context.o
+CFLAGS :=-Og -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
+		-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
 		-Wwrite-strings -Wredundant-decls -Wno-unused
 
-TESTS := $(BINDIR)/test_lexer_1 $(BINDIR)/test_acc_1 $(BINDIR)/test_lexer_2 \
-    $(BINDIR)/test_lexer_2b $(BINDIR)/test_logging $(BINDIR)/test_atom \
-	$(BINDIR)/test_lexer_3 $(BINDIR)/test_lexer_4 $(BINDIR)/test_sym_table
+TESTS :=  $(BINDIR)/test_logging $(BINDIR)/test_atom \
+		$(BINDIR)/tokenizer_test $(BINDIR)/simple_decl
 
 TESTER := ./src/tester.py
 
@@ -31,7 +31,7 @@ unit-tests: $(TESTER) $(TESTS)
 $(BINDIR)/test_lexer_%: test/test_lexer_%.c lexer.o token.o atom.o log.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/test_acc_1: test/test_acc_1.c decl_parser.o lexer.o token.o atom.o log.o
+$(BINDIR)/tokenizer_test: test/tokenizer_test.c new_tokenizer.o log.o context.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/test_logging: test/test_logging.c log.o

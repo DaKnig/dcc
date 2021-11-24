@@ -1,5 +1,5 @@
 //TOOD:
-//- string concat
+//- string interning
 
 #include <assert.h>
 #include <errno.h>
@@ -14,83 +14,11 @@
 #include <sys/times.h>
 
 #include "C_keywords.h"
+#include "log.h"
+#include "new_tokenizer.h"
+#include "context.h"
 
-enum token_type{
-    t_keyword, t_identifier, t_string, t_char, t_float,
-    t_unknown, t_punctuator, t_bad_token, t_EOF, t_int
-};
-struct token{
-	char* str;
-	enum token_type t;
-    union {
-        unsigned long long number;
-        double floating_number;
-    };
-    union {
-        char string_prefix[4];
-        char number_postfix[4];
-    };
-};
-//how long is str in the buffers
-// static unsigned buffer_size=1<<15;
-// static struct token buffer[2];
-
-// static unsigned int token=0;
-
-struct context {
-    FILE* file;
-    int stack_size;
-    int* stack_head;
-    struct token buffer[2];
-    unsigned buffer_size;
-    int token;
-    int stack[];
-};
-struct token* next(struct context* input);
-void print_token(struct token* t);
-struct context* create_ctx(FILE* f){
-    struct context* c = malloc(sizeof(struct context)+5*sizeof(int));
-    c->file=f;
-    c->stack_size=5;
-    c->stack_head=c->stack;
-    c->buffer_size=1<<15;
-    c->buffer[0].str=malloc(c->buffer_size);
-    c->buffer[1].str=malloc(c->buffer_size);
-    assert("malloc"&&c->buffer[0].str&&c->buffer[1].str);
-    c->token=0;
-    next(c);    // put one valid token into it
-    return c;
-};
-static inline void token_push(struct context* ctx, int c){
-    //use at your own risk
-    if (ctx->stack_head-ctx->stack == ctx->stack_size)
-        fprintf(stderr,"context stack size is reached");
-    *ctx->stack_head=c;
-    ctx->stack_head++;
-}
-static inline int token_pop(struct context* ctx) {
-    if (ctx->stack_head==ctx->stack)
-        fprintf(stderr,"popping empty context");
-    ctx->stack_head--;
-    return *ctx->stack_head;
-}
-static inline int token_getc(struct context* ctx) {
-    if (ctx->stack_head==ctx->stack)
-        return fgetc(ctx->file);
-    else
-        return token_pop(ctx);
-}
-
-static inline void token_ungetc(int c, struct context* ctx) {
-    if (c!=EOF &&c!=(char)EOF)
-        token_push(ctx,c);
-}
-static inline int token_feof(struct context* ctx) {
-    if (ctx->stack_head==ctx->stack)
-        return feof(ctx->file);
-    else
-        return 0;
-}
+//#define DEBUG
 
 struct token* get_punctuator(struct context* input){
     //reads a punctuator from the current position in `input`
@@ -99,7 +27,7 @@ struct token* get_punctuator(struct context* input){
     input->buffer[input->token].t=t_punctuator;
     memset(s,0,4); //zero the first 4 bytes
     s[0]=token_getc(input);
-    if(strchr("%+(;!&?*>#<|=.{})-~:/[]^,",s[0])==NULL){
+    if(strchr("%+(;!&?*>#<|=.{})-~:/[]^,",s[0])==NULL || s[0]=='\0'){
         //the character is not a punctuator
         token_ungetc(s[0], input);
         input->buffer[input->token].t=t_unknown;
@@ -156,8 +84,7 @@ skip_equals:
             break;
         default:
         panic:
-            fprintf(stderr,"INTERNAL ERROR 100");
-            exit(1);
+	    log_error("INTERNAL ERROR 100");
     }
     s++;
 push_char:
@@ -167,16 +94,6 @@ success:
     input->token^=1;   //switch buffer
     return &input->buffer[input->token^1]; //return the current buffer
 }
-
-// void init(void) {
-//     buffer[0].str=malloc(1<<15);
-//     buffer[1].str=malloc(1<<15);
-//     buffer[0].t=buffer[1].t=t_punctuator;
-//     strcpy(buffer[0].str,";");
-//     strcpy(buffer[1].str,";");
-//         //this is done in order for the first token to be always `;`.
-//         //this should not be a problem in a normal program.
-// }
 
 static inline int string_in_strings(char* s,const char** strings, int n){
     for (n--;n>=0;n--)
@@ -259,7 +176,7 @@ static inline struct token* get_string(struct context* input) {
         } else if (!strchr("uUL",prefix[0])) {  //if it's not [\"uUL]
             goto stop_0;
         }
-            //not a string because a string starts with [\"uUL]         //"
+	//not a string because a string starts with [\"uUL]         //"
         prefix[1]=token_getc(input);
         if (prefix[1]=='"') {   //prefix is [uUL]           //"
             prefix[1]='\0';
@@ -490,12 +407,12 @@ static inline struct token* get_number(struct context* input){
             break;
         default:
         bad_float_suffix:
-            //if the postfix is neither of the above and not empty...
+            //if the suffix is neither of the above and not empty...
             fprintf(stderr,"invalid suffix \"%s\" on floating constant\n",
                                                                 suffix);
             exit(1);
         }
-        memcpy(input->buffer[input->token].number_postfix,suffix,2); //copy the suffix
+        memcpy(input->buffer[input->token].number_suffix,suffix,2); //copy the suffix
         input->buffer[input->token].t=t_float;
     } else {
         {   unsigned long long tmp=strtoull(input->buffer[input->token].str,&suffix,0);
@@ -532,14 +449,14 @@ static inline struct token* get_number(struct context* input){
         }
         int n=0;
         if (has_u)
-            input->buffer[input->token].number_postfix[n++]='u';
+            input->buffer[input->token].number_suffix[n++]='u';
         else if (has_l)
-            input->buffer[input->token].number_postfix[n++]='l';
+            input->buffer[input->token].number_suffix[n++]='l';
         else if (has_ll) {
-            input->buffer[input->token].number_postfix[n++]='l';
-            input->buffer[input->token].number_postfix[n++]='l';
+            input->buffer[input->token].number_suffix[n++]='l';
+            input->buffer[input->token].number_suffix[n++]='l';
         }
-        input->buffer[input->token].number_postfix[n]='\0';
+        input->buffer[input->token].number_suffix[n]='\0';
             //the suffix is now either u, ul, ull, l, ll or empty;
         input->buffer[input->token].t=t_int;
     }
@@ -554,9 +471,11 @@ struct token* next(struct context* input){
         get_number};
         //an array of all the "get_token" functions.
         //all of them return either a valid token or NULL if they fail.
-	int c;
-    do c=token_getc(input); while (isspace(c));
-	token_ungetc(c,input);
+    int c;
+    do {
+	c=token_getc(input);
+    } while (isspace(c));
+    token_ungetc(c,input);
 
     unsigned i=0;
     while (result==NULL && i<sizeof(get_token)/sizeof(*get_token)
@@ -566,10 +485,12 @@ struct token* next(struct context* input){
     }
 
     //until you find one that works
-	if(token_feof(input)) {
+    if(token_feof(input)) {
         input->buffer[input->token].t=t_EOF;
-        return 	&input->buffer[input->token^1]; //because in this case token doesn't flip
-    } else if (result==NULL) {
+	input->buffer[input->token].str = "<EOF>";
+        input->token^=1;
+        return 	&input->buffer[input->token]; // return previous token
+    } else {
         //if couldn't find any token, issue lexer error
         char next_char=token_getc(input);
         fprintf(stderr,"can't parse token starting with %c"
@@ -597,50 +518,54 @@ void print_token(struct token* t) {
     if (t==NULL)
         printf("NULL");
     switch (t->t) {
-        case t_punctuator:
-        	printf("punct: ");
-            puts(t->str);     break;
-        case t_keyword:
-        	printf("kw: ");
-            puts(t->str);     break;
-        case t_identifier:
-        	printf("id: ");
-            puts(t->str);     break;
-        case t_string:
-            if (t->string_prefix[0]!='\0')
+    case t_punctuator:
+	printf("punct: ");
+	puts(t->str);     break;
+    case t_keyword:
+	printf("kw: ");
+	puts(t->str);     break;
+    case t_identifier:
+	printf("id: ");
+	puts(t->str);     break;
+    case t_string:
+	if (t->string_prefix[0]!='\0')
                 printf("prefix: %s\t string:", t->string_prefix);
-            printf("\"%s\"\n",t->str);
-            break;
-        case t_char:
-            if (t->string_prefix[0]!='\0')
-                printf("prefix: %s\t string:", t->string_prefix);
-            printf("'%s'\n",t->str);
-            break;
-        case t_unknown:
-            printf("UNKNOWN");
-            break;
-        case t_EOF:
-            break;
-        case t_int:
-            printf("(int)%llu\n",t->number);
-            break;
-        case t_float:
-            printf("(float)%lf\n",t->floating_number);
-            break;
-        case t_bad_token:
-            fprintf(stderr,"INTERNAL ERROR 102");
-            exit(1);
-        default:
-            fprintf(stderr,"INTERNAL ERROR 103");
-            exit(1);
+	printf("\"%s\"\n",t->str);
+	break;
+    case t_char:
+	if (t->string_prefix[0]!='\0')
+	    printf("prefix: %s\t string:", t->string_prefix);
+	printf("'%s'\n",t->str);
+	break;
+    case t_unknown:
+	printf("UNKNOWN");
+	break;
+    case t_EOF:
+	puts("<EOF>");
+	break;
+    case t_int:
+	printf("(int)%llu\n",t->number);
+	break;
+    case t_float:
+	printf("(float)%lf\n",t->floating_number);
+	break;
+    case t_bad_token:
+	fprintf(stderr,"<bad token>");
+	exit(1);
+    default:
+	fprintf(stderr,"INTERNAL ERROR 103");
+	exit(1);
     }
 }
 
 void expect_token(const char* expected, struct context* input){
-	//eat up the next token. crash if no match.
-	char* delim = next(input)->str;
-	if (strcmp(delim,expected)!=0){
-		fprintf(stderr,"expected `%s` before `%s`\n",expected,delim);
-		exit(1);
-	}
+    //eat up the next token. crash if no match.
+    struct token* t = next(input);
+    char* delim = t->str;
+    if (strcmp(delim,expected)!=0){
+	if (t->t == t_EOF)
+	    delim = "<EOF>";
+	log_error("expected `%s` before `%s`\n", expected, delim);
+	exit(1);
+    }
 }
