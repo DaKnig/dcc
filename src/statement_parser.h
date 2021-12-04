@@ -1,14 +1,15 @@
 #ifndef STATEMENT_PARSER
 #define STATEMENT_PARSER
 
+#include "decl_parser.h"
+
 struct statement;
-struct declaration;
 struct context;
 
 struct block_element{
 	enum {s_statement,s_declaration} t;
 	struct statement* s;
-	struct declaration* d;
+	struct init_declaration_list* d;
 };
 
 struct block{

@@ -49,8 +49,8 @@ static inline int prefix_or_infix(enum notation n,int prefix_binding_power,
 int bp(const struct token* token, const enum notation n){
 /*
 	returns a binding power- how tightly does the operator bind to the operands
-	near it	higher arguments to the auxilary functions (prefix_or_infix, 
-	infix_only) == less bp a full expression is called with 16 so anything 
+	near it	higher arguments to the auxilary functions (prefix_or_infix,
+	infix_only) == less bp a full expression is called with 16 so anything
 	higher is equally tight (including ;)
 */
 //need to find out how to do ?:
@@ -113,14 +113,20 @@ int bp(const struct token* token, const enum notation n){
 		ret_val = prefix_or_infix(n,2,1);
 
 	else if(strcmp(token->str, "!")==0 ||
-			strcmp(token->str, "~")==0){
-		if(n==prefix)
-			ret_val = binding_power_formula(2);
-		else if(n==infix){
-			fprintf(stderr,"%s is out of place! didn't expected some"
-			"expressions to it's left",	token->str);
-			exit (1);		
-		}
+	        strcmp(token->str, "~")==0){
+	    switch (n) {
+	    case prefix:
+		ret_val = binding_power_formula(2);
+		break;
+	    case infix:
+		fprintf(stderr,"%s is out of place! didn't expected some"
+			"expressions to it's left", token->str);
+		exit (1);
+	    default:
+		fprintf(stderr, "internal error: non infix, non prefix op:"
+			" `%s`", token->str);
+		exit(1);
+	    }
 	}
 
 	else if(strcmp(token->str, "*")==0)
@@ -137,9 +143,9 @@ int bp(const struct token* token, const enum notation n){
 		ret_val=infix_only(token,n,13);
 
 	else{
-		fprintf(stderr,"tried to evaluate the binding power of %s. failed"
-													" miserably.", token->str);
-		exit(1);
+	    fprintf(stderr,"tried to evaluate the binding power of %s."
+	                   " failed miserably.", token->str);
+	    exit(1);
 	}
 	return ret_val;
 }
@@ -254,7 +260,7 @@ static inline struct expr_ast* led(struct expr_ast* left,struct token*operator,
 		}
 	}else{
 		if(operator->t==t_identifier){
-			fprintf(stderr,"did not expect this identifier here: %s\n", 
+			fprintf(stderr,"did not expect this identifier here: %s\n",
 																operator->str);
 			exit(1);
 		}else if(operator->t==t_int || operator->t==t_string){
@@ -300,7 +306,7 @@ struct expr_ast* nud(struct token* token,struct context* input){
 			next(input);//eat up the '('
 			struct expr_ast* temp = make_comma_tree(input);
 			{//eat up the ')'
-				char* delim=next(input)->str;
+				const char* delim=next(input)->str;
 				if (strcmp(delim,")")!=0){
 					fprintf(stderr,"expected `%s` before `%s`", ")",delim);
 					exit(1);
@@ -417,7 +423,7 @@ void free_expr_ast(struct expr_ast* root){
 			break;
 		case unprocessed:
 			fprintf(stderr,"encountered an unprocessed tree while freeing");
-			break;		
+			break;
 	}
 	free(root);
 }

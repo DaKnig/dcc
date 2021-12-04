@@ -96,7 +96,7 @@ struct statement* parse_statement(struct context* input){
 				if (is_type(peek(input)->str)) {
 					//if it is a type-related keyword, parse declaration
 					last->t=s_declaration;
-					last->d=parse_declaration(input);////
+					last->d=parse_declaration(input);
 				}
 				else {
 					last->t=s_statement;

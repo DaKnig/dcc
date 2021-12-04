@@ -241,11 +241,12 @@ static inline struct decl_type get_declarator(struct context* input) {
 	    break;
 	//TODO - impl []()
 	case '[': case '(':
-	    log_warn("arrays, functions are not supported yet");
-	    break;
+	    log_error("arrays, functions are not supported yet");
+	    exit(1);
 	default:
 	    log_error("expected identifier, '[' or '(' before '%s'",
 		      t->str);
+	    exit(1);
 	}
 	break;
     case t_string: case t_char: case t_float: case t_keyword: //fallthrough
@@ -253,6 +254,7 @@ static inline struct decl_type get_declarator(struct context* input) {
     default:
 	log_error("expected identifier, '[' or '(' before '%s'",
 		  t->str);
+	exit(1);
     }
     return ret_val;
 }

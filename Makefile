@@ -6,35 +6,35 @@ FUZZDIR := fuzz
 OBJS := pratt.o log.o atom.o statement_parser.o new_tokenizer.o \
 		decl_parser.o context.o
 CFLAGS :=-Og -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
-		-Wstrict-aliasing=1 -Wswitch-enum -Wstrict-prototypes \
+		-Wstrict-aliasing=1 -Wswitch -Wstrict-prototypes \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
-		-Wwrite-strings -Wredundant-decls -Wno-unused
+		-Wredundant-decls -Wno-unused -fmax-errors=2
 
-TESTS :=  $(BINDIR)/test_logging $(BINDIR)/test_atom \
-		$(BINDIR)/tokenizer_test $(BINDIR)/simple_decl
+TESTS :=  $(BINDIR)/test_logging $(BINDIR)/test_atom $(BINDIR)/simple_decl \
+		$(BINDIR)/tokenizer_test
 
 TESTER := ./src/tester.py
 
-CC ?= gcc
+CC := gcc
 
 all: $(BINDIR)/main #unit-tests
 
 memtest: $(BINDIR)/main
-	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all -v ./main
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all -v ./$^
 
-$(BINDIR)/main: $(OBJS) Makefile
-	$(CC) $(CFLAGS) -o $@ $(OBJS)
+$(BINDIR)/main: $(OBJS) main.o
+	$(CC) $(CFLAGS) -o $@ $^
 
 unit-tests: $(TESTER) $(TESTS)
 	$(TESTER) $(TESTS)
 
-$(BINDIR)/test_lexer_%: test/test_lexer_%.c lexer.o token.o atom.o log.o
+$(BINDIR)/test_logging: test/test_logging.c log.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/tokenizer_test: test/tokenizer_test.c new_tokenizer.o log.o context.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/test_logging: test/test_logging.c log.o
+$(BINDIR)/simple_decl: test/simple_decl.c $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/test_atom: test/test_atom.c atom.o log.o
@@ -42,9 +42,6 @@ $(BINDIR)/test_atom: test/test_atom.c atom.o log.o
 
 $(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
 $(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o
-	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
-
-$(BINDIR)/test_sym_table: test/test_sym_table.c symbol_table.o decl_parser.o lexer.o
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 %.o: $(SRCDIR)/%.c

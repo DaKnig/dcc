@@ -176,7 +176,7 @@ static inline struct token* get_string(struct context* input) {
         } else if (!strchr("uUL",prefix[0])) {  //if it's not [\"uUL]
             goto stop_0;
         }
-	//not a string because a string starts with [\"uUL]         //"
+        //not a string because a string starts with [\"uUL]         //"
         prefix[1]=token_getc(input);
         if (prefix[1]=='"') {   //prefix is [uUL]           //"
             prefix[1]='\0';
@@ -349,6 +349,13 @@ static inline struct token* get_keyword_or_identifier(struct context* input) {
     input->token^=1;   //switch buffer
     return &input->buffer[input->token^1]; //return the current buffer
 }
+static inline struct token* get_eof(struct context* input){
+    if (!token_feof(input)) return NULL;
+    input->buffer[input->token].t=t_EOF;
+    strcpy(input->buffer[input->token].str, "<EOF>");
+    input->token^=1;   //switch buffer
+    return &input->buffer[input->token^1]; //return the current buffer
+}
 static inline struct token* get_number(struct context* input){
     int c=token_getc(input);
     if (!isdigit(c))    {  token_ungetc(c,input);   return NULL;  }
@@ -468,33 +475,31 @@ struct token* next(struct context* input){
     struct token* result=NULL;
     struct token* (*get_token[])(struct context*) =
         { get_string, get_char, get_keyword_or_identifier, get_punctuator,
-        get_number};
+        get_number, get_eof};
         //an array of all the "get_token" functions.
         //all of them return either a valid token or NULL if they fail.
     int c;
-    do {
-	c=token_getc(input);
-    } while (isspace(c));
+    do c=token_getc(input); while (isspace(c));
     token_ungetc(c,input);
 
     unsigned i=0;
-    while (result==NULL && i<sizeof(get_token)/sizeof(*get_token)
-            && !token_feof(input)) {
+    while (result==NULL && i<sizeof(get_token)/sizeof(*get_token)) {
         //try each function in order
         result = get_token[i++](input);
     }
 
     //until you find one that works
-    if(token_feof(input)) {
-        input->buffer[input->token].t=t_EOF;
-	input->buffer[input->token].str = "<EOF>";
-        input->token^=1;
-        return 	&input->buffer[input->token]; // return previous token
+    if(result!=NULL) {
+#ifdef DEBUG
+        printf ("next ");
+        print_token(&input->buffer[input->token]);
+#endif
+        return &input->buffer[input->token];  //return the previous token
     } else {
         //if couldn't find any token, issue lexer error
         char next_char=token_getc(input);
         fprintf(stderr,"can't parse token starting with %c"
-        					" ('\\x%x')\n", next_char,next_char);
+                       " ('\\x%x')\n", next_char,next_char);
         exit(1);
     // } else if (result->t==t_string && buffer[input->token].t==t_string) {
     //     // string concat
@@ -503,15 +508,13 @@ struct token* next(struct context* input){
     //     strncat(buffer[input->token].str, result->str,
     //                                 buffer_size-1-strlen(buffer[input->token].str));
     //     //
-    } else {
-        printf ("next ");
-        print_token(&input->buffer[input->token]);
-        return &input->buffer[input->token];  //return the previous token
     }
 }
 struct token* peek(struct context* input) {
+#ifdef DEBUG
     printf ("peek ");
     print_token(&input->buffer[input->token^1]);
+#endif
     return &input->buffer[input->token^1];  //return the previous token
 }
 void print_token(struct token* t) {
@@ -561,11 +564,9 @@ void print_token(struct token* t) {
 void expect_token(const char* expected, struct context* input){
     //eat up the next token. crash if no match.
     struct token* t = next(input);
-    char* delim = t->str;
+    const char* delim = t->str;
     if (strcmp(delim,expected)!=0){
-	if (t->t == t_EOF)
-	    delim = "<EOF>";
-	log_error("expected `%s` before `%s`\n", expected, delim);
-	exit(1);
+        log_error("expected `%s` before `%s`\n", expected, delim);
+        exit(1);
     }
 }
