@@ -1,0 +1,24 @@
+# Optimization ideas and considerations
+
+call graph -> static allocation
+- requires cross module tracking
+- LTO?
+- reentry
+- duplicating the code + smart linking?
+- called by function pointer?
+
+bank switching
+- reentry
+- atomicity
+- interrupts
+
+far pointers
+- restoring bank
+- shadow variable?
+- bank number at the start/end of each bank?
+- 25bit for 8MB is a problem for atomicity
+
+spilling
+- stack, as a fallback.
+- wram, with `ld [a16], a` - slower than hram
+- hram, with `ldh [0xff00+n8], a` - up to 127 bytes! - 2 bytes 3 cycles for rw
