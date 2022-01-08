@@ -13,7 +13,7 @@ CFLAGS :=-Og -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
 TESTS :=  $(BINDIR)/test_logging $(BINDIR)/test_atom $(BINDIR)/simple_decl \
 		$(BINDIR)/tokenizer_test
 
-TESTER := ./src/tester.py
+TESTER := ./tester.py
 
 CC := gcc
 
