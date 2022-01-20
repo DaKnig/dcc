@@ -26,18 +26,25 @@ int token_getc(struct context* ctx) {
         ret_val = fgetc(ctx->file);
     else
         ret_val = token_pop(ctx);
-    ctx->col++;
+    ctx->col+=!token_feof(ctx);
     if (ret_val=='\n') {
-	ctx->col=1;
+	ctx->col=0;
 	ctx->row++;
     }
+
+#ifdef DEBUG
+    fprintf(stderr, "c: '%c' ; col: %zd\n", ret_val, ctx->col);
+
+#endif
+
     return ret_val;
 }
 
 void token_ungetc(int c, struct context* ctx) {
-    if (c!=EOF &&c!=(char)EOF)
+    if (c!=EOF &&c!=(char)EOF) {
         token_push(ctx,c);
-    ctx->col--;
+	ctx->col--;
+    }
 }
 
 int token_feof(struct context* ctx) {
@@ -48,16 +55,18 @@ int token_feof(struct context* ctx) {
 }
 
 struct context* create_ctx(FILE* f){
-    struct context* c = malloc(sizeof(struct context)+5*sizeof(int));
+    const int size_of_stack = 1; // ought to be enough. increase as needed.
+    struct context* c = malloc(sizeof(struct context) +
+			       size_of_stack*sizeof(int));
     c->file=f;
-    c->stack_size=5;
+    c->stack_size=1;
     c->stack_head=c->stack;
     c->buffer_size=1<<15;
     c->buffer[0].str=malloc(c->buffer_size);
     c->buffer[1].str=malloc(c->buffer_size);
     assert("malloc"&&c->buffer[0].str&&c->buffer[1].str);
     c->token=0;
-    c->row = c->col = 1; // 1 indexed
+    c->row = c->col = 0; // 1 indexed
     next(c);    // put one valid token into it
     return c;
 }

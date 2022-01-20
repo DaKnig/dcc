@@ -11,8 +11,8 @@ struct context {
     struct token buffer[2];
     unsigned buffer_size;
     int token;
-    unsigned long long row; // 1 indexed
-    unsigned long long col; // 1 indexed
+    size_t row; // 0 indexed
+    size_t col; // 0 indexed
     int stack[];
 };
 
