@@ -21,8 +21,9 @@ struct token{
         char string_prefix[4];
         char number_suffix[4];
     };
-    unsigned long long row;
-    unsigned long long col;
+    size_t row;
+    size_t col;
+    fpos_t pos;
 };
 
 #include "context.h"

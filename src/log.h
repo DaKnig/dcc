@@ -15,6 +15,12 @@
 	log_printf(LOG_FATAL, ANSI_COLOR(__FILE__ ":" STR(__LINE__), \
 					 WHITE) " " __VA_ARGS__)
 
+#define log_pos_error(errf, ctx, tok, ...)	\
+        do {				        \
+            log_printf(LOG_ERROR, __VA_ARGS__); \
+	    fprint_loc(errf, ctx, tok);		\
+	} while(0)
+
 #ifndef NDEBUG
 #define log_debug(...) log_printf(LOG_INFO, __VA_ARGS__)
 #else

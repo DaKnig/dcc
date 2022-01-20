@@ -21,4 +21,11 @@ int token_getc(struct context* ctx);
 void token_ungetc(int c, struct context* ctx);
 int token_feof(struct context* ctx);
 
+void fprint_loc(FILE* out, struct context* ctx, const struct token* t);
+// if context is not seekable, do nothing.
+// otherwise, print the line from ctx starting from pos-col,
+// with an indicator.
+// col is 1-indexed- first char on the line has col=1.
+// restores the state of ctx before continuing.
+
 #endif

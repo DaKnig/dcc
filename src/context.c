@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
+#include "util.h"
 #include "log.h"
 #include "context.h"
 #include "new_tokenizer.h"
@@ -56,17 +59,59 @@ int token_feof(struct context* ctx) {
 
 struct context* create_ctx(FILE* f){
     const int size_of_stack = 1; // ought to be enough. increase as needed.
-    struct context* c = malloc(sizeof(struct context) +
+    struct context* c = xmalloc(sizeof(struct context) +
 			       size_of_stack*sizeof(int));
     c->file=f;
     c->stack_size=1;
     c->stack_head=c->stack;
     c->buffer_size=1<<15;
-    c->buffer[0].str=malloc(c->buffer_size);
-    c->buffer[1].str=malloc(c->buffer_size);
-    assert("malloc"&&c->buffer[0].str&&c->buffer[1].str);
+    c->buffer[0].str=xmalloc(c->buffer_size);
+    c->buffer[1].str=xmalloc(c->buffer_size);
     c->token=0;
     c->row = c->col = 0; // 1 indexed
     next(c);    // put one valid token into it
     return c;
+}
+
+
+void fprint_loc(FILE* out, struct context* ctx, const struct token* t) {
+    if (fseek(ctx->file, 0, SEEK_CUR) == -1) {
+#ifdef DEBUG
+	fprintf(stderr, "file unseekable\n");
+#endif
+	return;
+    }
+    // first, rewind to beginning of file/start of line
+    fsetpos(ctx->file, &t->pos);
+    size_t col = t->col + (t->t != t_EOF);
+    do {
+	long seek_by = col > (1<<30)? (1<<30) : col;
+	col -= seek_by;
+	fseek(ctx->file, -seek_by, SEEK_CUR);
+    } while (col > 0);
+    // now, print the line and simultaneously record the spaces
+    size_t n;
+    char* str=xmalloc(256);
+    n = fprintf(out, "%7zi | ", t->row + 1); // 1 indexed
+    memset(str, ' ', n); // place that many spaces on str
+
+    int c;
+    for (c = getc(ctx->file), col = t->col;
+	 c != EOF && col; // only care about recording spaces up to col
+	 c = getc(ctx->file), col--) {
+
+	if (n%128) {
+	    str = realloc(str, n+128);
+	}
+	fputc(c, out); // print char
+	str[n++] = " \t"[c=='\t']; // save the right whitespace
+    }
+    while (c!=EOF && c!='\n') {
+	fputc(c, out);
+	c=getc(ctx->file);
+    }
+    fputc('\n', out);
+    str[n] = '\0';
+    fprintf(out, "%s^\n", str);
+
 }
