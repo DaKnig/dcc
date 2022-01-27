@@ -176,9 +176,9 @@ static inline struct token* get_string(struct context* input) {
         } else if (!strchr("uUL",prefix[0])) {  //if it's not [\"uUL]
             goto stop_0;
         }
-        //not a string because a string starts with [\"uUL]         //"
+            //not a string because a string starts with [\"uUL]         //"
         prefix[1]=token_getc(input);
-        if (prefix[1]=='"') {   //prefix is [uUL]           //"
+        if (prefix[1]=='"') {               //prefix is [uUL]           //"
             prefix[1]='\0';
             goto get_s_char;
         } else if (prefix[0]!='u') {    //if [UL][^"]                   //"
@@ -368,9 +368,7 @@ static inline struct token* get_number(struct context* input){
 
     while (isalnum(c) || c=='.' || c=='_') {
         if (i==input->buffer_size - 1) {
-            fprintf(stderr,"the number starting with %s is too long."
-                                    " exiting\n", input->buffer[input->token].str);
-            exit(1);
+	    break; // strtoull will deal with errors...
         }
         if (c=='.') {
             if (!is_float)
