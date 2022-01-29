@@ -312,7 +312,7 @@ struct init_declaration_list* parse_declaration(struct context* input) {
 	    next(input);
 	    &(const struct token) {.str="=",.t=t_punctuator};
 	    ret_val->init_values[ret_val->size-1] =
-		expr(bp(&(const struct token) {.str="=",.t=t_punctuator},
+		expr(bp(input,&(const struct token) {.str="=",.t=t_punctuator},
 			 infix),
 		      input);
 	} else {

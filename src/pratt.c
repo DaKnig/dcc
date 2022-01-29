@@ -11,6 +11,7 @@
 #include <string.h> //strcmp
 
 #include "util.h"
+#include "log.h"
 #include "pratt.h"
 #include "new_tokenizer.h"
 
@@ -46,7 +47,8 @@ static inline int prefix_or_infix(enum notation n,int prefix_binding_power,
 	}
 }
 
-int bp(const struct token* token, const enum notation n){
+int bp(struct context* input,
+       const struct token* token, const enum notation n){
 /*
 	returns a binding power- how tightly does the operator bind to the operands
 	near it	higher arguments to the auxilary functions (prefix_or_infix,
@@ -119,12 +121,14 @@ int bp(const struct token* token, const enum notation n){
 		ret_val = binding_power_formula(2);
 		break;
 	    case infix:
-		fprintf(stderr,"%s is out of place! didn't expected some"
-			"expressions to it's left", token->str);
+		log_pos_error(stderr, input, token,
+			      "%s is out of place! didn't expected some"
+			      "expressions to it's left", token->str);
 		exit (1);
 	    default:
-		fprintf(stderr, "internal error: non infix, non prefix op:"
-			" `%s`", token->str);
+		log_pos_error(stderr, input, token,
+			      "internal error: non infix, non prefix op:"
+			      " `%s`", token->str);
 		exit(1);
 	    }
 	}
@@ -143,8 +147,9 @@ int bp(const struct token* token, const enum notation n){
 		ret_val=infix_only(token,n,13);
 
 	else{
-	    fprintf(stderr,"tried to evaluate the binding power of %s."
-	                   " failed miserably.", token->str);
+	    log_pos_error(stderr, input, token,
+			  "tried to evaluate the binding power of %s."
+			  " failed miserably.", token->str);
 	    exit(1);
 	}
 	return ret_val;
@@ -206,7 +211,7 @@ static inline struct expr_ast* led(struct expr_ast* left,struct token*operator,
 			strcmp(operator->str, "|=")==0)
 
 			//right to left/right associative, infix/postfix operators
-				return make_bin_tree(left,operator,expr(bp(operator,infix)-1,input));
+				return make_bin_tree(left,operator,expr(bp(input, operator,infix)-1,input));
 		else if( strcmp(operator->str,"++")==0 ||
 				strcmp(operator->str,"--")==0 ){
 				operator->str[0] = 'p';
@@ -236,13 +241,13 @@ static inline struct expr_ast* led(struct expr_ast* left,struct token*operator,
 			strcmp(operator->str, ",")==0)
 			//left to right/left associative, infix/postfix operators
 				return make_bin_tree(left,operator,
-											expr(bp(operator,infix), input));
+											expr(bp(input,operator,infix), input));
 		else if(strcmp(operator->str,"?")==0){
 			struct expr_ast* middle = expr(0,input);
 				assert (("expected something after the ?",
 								middle!=NULL && peek(input)->str!=NULL));
 			expect_token(":",input);
-			struct expr_ast* right = expr(bp(operator,infix)-1 ,input);///////////testing
+			struct expr_ast* right = expr(bp(input,operator,infix)-1 ,input);///////////testing
 				assert (("expected something after the :",right!=NULL));
 			struct expr_ast* ternary_tree = xmalloc(sizeof (struct expr_ast));
 			*ternary_tree = (struct expr_ast) {
@@ -254,23 +259,28 @@ static inline struct expr_ast* led(struct expr_ast* left,struct token*operator,
 		}
 		/*if nothing else is matched*/
 		else{
-			fprintf(stderr,"did not expect this op: `%s` with something to"
-												" it's left\n", operator->str);
+			log_pos_error(stderr, input, operator,
+				      "did not expect this op: `%s` with"
+				      " something to its left\n",
+				      operator->str);
 			exit(1);
 		}
 	}else{
 		if(operator->t==t_identifier){
-			fprintf(stderr,"did not expect this identifier here: %s\n",
-																operator->str);
+			log_pos_error(stderr, input, operator,
+				      "did not expect this identifier here:"
+				      " `%s`\n", operator->str);
 			exit(1);
 		}else if(operator->t==t_int || operator->t==t_string){
-			fprintf(stderr,"did not expect this literal here: %s",
-																operator->str);
+			log_pos_error(stderr, input, operator,
+				      "did not expect this literal here:"
+				      " `%s`\n", operator->str);
 			exit(1);
 		}
 		else{
-			fprintf(stderr,"how did we get here? here's the OP that triggered"
-													" me: %s", operator->str);
+			log_pos_error(stderr, input, operator,
+				      "how did we get here? the OP that"
+				      "triggered me: `%s`\n", operator->str);
 			exit(1);
 		}
 	}
@@ -288,7 +298,7 @@ struct expr_ast* make_comma_tree(struct context* input){
 	do{
 		temp->argv=xrealloc(temp->argv, sizeof(struct expr_ast[++temp->argc]));
 		temp->argv[temp->argc-1] = expr(
-						bp(&(struct token){.str = strdup(",")}, infix),input);
+						bp(input,&(struct token){.str = strdup(",")}, infix),input);
 		delim = peek(input);
 	}while(strcmp(delim->str,",")==0 && (next(input),1));
 	return temp;
@@ -308,7 +318,7 @@ struct expr_ast* nud(struct token* token,struct context* input){
 			{//eat up the ')'
 				const char* delim=next(input)->str;
 				if (strcmp(delim,")")!=0){
-					fprintf(stderr,"expected `%s` before `%s`", ")",delim);
+					fprintf(stderr,"expected `%s` before `%s`\n", ")",delim);
 					exit(1);
 				}
 			}
@@ -328,7 +338,7 @@ struct expr_ast* nud(struct token* token,struct context* input){
 	   strcmp(token->str,"&" )==0 ||
 	   strcmp(token->str,"++")==0 ||
 	   strcmp(token->str,"--")==0)
-		return make_unary_tree(expr(bp(token,prefix) - 1,input) , token);
+		return make_unary_tree(expr(bp(input,token,prefix) - 1,input) , token);
 	else if(strcmp(token->str,"(")==0){
 	//get expression , expect it to return with a ')'
 		struct expr_ast *temp = expr(0,input);
@@ -337,7 +347,9 @@ struct expr_ast* nud(struct token* token,struct context* input){
 		//maybe later add a field to the `(` that contains pointer to `)`
 	}
 	else{
-		fprintf(stderr,"expected expression before: '%s'", token->str);
+		log_pos_error(stderr, input, token,
+			      "expected expression before: '%s'\n",
+			      token->str);
 		exit(1);
 	}
 	return ret_val;
@@ -348,7 +360,7 @@ struct expr_ast* expr(int rbp,struct context* input){
 		return NULL;
 	}
 	struct expr_ast* left = nud(next(input),input);
-	while (peek(input)!=NULL&&bp(peek(input),infix) > rbp)
+	while (peek(input)!=NULL&&bp(input,peek(input),infix) > rbp)
 		left = led(left, next(input), input);
 	return left;
 }

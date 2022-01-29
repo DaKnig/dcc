@@ -41,7 +41,8 @@ struct expr_ast{
 };
 
 enum notation{prefix, infix};
-int bp(const struct token* token, const enum notation n);
+int bp(struct context* input,
+       const struct token* token, const enum notation n);
 /*
   returns a binding power suitable for use in expr()
 */
