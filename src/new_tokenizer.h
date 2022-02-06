@@ -5,12 +5,20 @@
 
 struct context;
 
-enum token_type{
-    t_keyword, t_identifier, t_string, t_char, t_float,
-    t_unknown, t_punctuator, t_bad_token, t_EOF, t_int
+enum token_type {
+    t_keyword,
+    t_identifier,
+    t_string,
+    t_char,
+    t_float,
+    t_unknown,
+    t_punctuator,
+    t_bad_token,
+    t_EOF,
+    t_int
 };
 
-struct token{
+struct token {
     char* str;
     enum token_type t;
     union {

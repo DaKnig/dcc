@@ -9,40 +9,37 @@
 *******************************************************************************/
 struct context;
 
-enum expr_ast_type
-{
-	term,
-	unary_op,
-	bin_op,
-	ternary_op,
-	comma,
-	func_call,
-	unprocessed
+enum expr_ast_type {
+    term,
+    unary_op,
+    bin_op,
+    ternary_op,
+    comma,
+    func_call,
+    unprocessed
 };
 
-
-struct expr_ast{
-	enum expr_ast_type type;
-	union{
-		struct{//term
-			struct token* token;
-		};
-		struct{//op - unary, binary, ternary
-			struct token* op;
-			struct expr_ast* term[3];
-		};
-		struct{//func call,comma///fix is required!!!
-			struct token* func_name;
-			struct expr_ast* *argv;
-			int argc;
-			//pointer to a block
-		};
-	};
+struct expr_ast {
+    enum expr_ast_type type;
+    union {
+        struct { //term
+            struct token* token;
+        };
+        struct { //op - unary, binary, ternary
+            struct token* op;
+            struct expr_ast* term[3];
+        };
+        struct { //func call,comma///fix is required!!!
+            struct token* func_name;
+            struct expr_ast** argv;
+            int argc;
+            //pointer to a block
+        };
+    };
 };
 
-enum notation{prefix, infix};
-int bp(struct context* input,
-       const struct token* token, const enum notation n);
+enum notation { prefix, infix };
+int bp(struct context* input, const struct token* token, const enum notation n);
 /*
   returns a binding power suitable for use in expr()
 */
