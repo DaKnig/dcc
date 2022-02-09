@@ -33,6 +33,8 @@ matrix channel - [#dcc-dev:matrix.org](https://matrix.to/#/%23dcc-dev%3Amatrix.o
 
 - [ ] outputting DCC IR (not done yet)
 
+- [ ] unit tests (minimal progress)
+
 ## other repos in the DCC project
 
 sm83 backend - [vbsm83(name pending)](https://github.com/GreenAndEievui/vbsm83)

@@ -22,30 +22,33 @@ all: $(BINDIR)/main #unit-tests
 memtest: $(BINDIR)/main
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all -v ./$^
 
-$(BINDIR)/main: $(OBJS) main.o
+$(BINDIR)/main: $(OBJS) main.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^
 
 unit-tests: $(TESTER) $(TESTS)
 	$(TESTER) $(TESTS)
 
-$(BINDIR)/test_logging: test/test_logging.c log.o
+$(BINDIR)/test_logging: test/test_logging.c log.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/tokenizer_test: test/tokenizer_test.c new_tokenizer.o log.o context.o
+$(BINDIR)/tokenizer_test: test/tokenizer_test.c new_tokenizer.o log.o context.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/simple_decl: test/simple_decl.c $(OBJS)
+$(BINDIR)/simple_decl: test/simple_decl.c $(OBJS) | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/test_atom: test/test_atom.c atom.o log.o
+$(BINDIR)/test_atom: test/test_atom.c atom.o log.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
-$(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o
+$(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 %.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+%/:
+	mkdir -p $@
 
 .PHONY: clean memtest unit-tests fuzz run
 fuzz: $(BINDIR)/fuzz_lexer
