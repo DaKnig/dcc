@@ -512,11 +512,19 @@ struct token* next(struct context* input) {
     while (isspace(c));
     token_ungetc(c, input);
 
+    size_t begin_col = input->col; // tokens cant span multiple lines
+    fpos_t begin_pos;
+    fgetpos(input->file, &begin_pos); // position at the start of token
+
     unsigned i = 0;
     while (result == NULL && i < sizeof(get_token) / sizeof(*get_token)) {
         //try each function in order
         result = get_token[i++](input);
     }
+
+    result->col = begin_col;
+    result->row = input->row;
+    result->pos = begin_pos;
 
     //until you find one that works
     if (result != NULL) {
@@ -528,10 +536,9 @@ struct token* next(struct context* input) {
     } else {
         //if couldn't find any token, issue lexer error
         char next_char = token_getc(input);
-        fprintf(stderr,
-                "can't parse token starting with %c"
-                " ('\\x%x')\n",
-                next_char, next_char);
+        log_pos_error(stderr, input, result,
+                      "can't parse token starting with %c ('\\x%x')\n",
+                      next_char, next_char);
         exit(1);
         // } else if (result->t==t_string && buffer[input->token].t==t_string) {
         //     // string concat
@@ -550,20 +557,11 @@ struct token* peek(struct context* input) {
     return &input->buffer[input->token ^ 1]; //return the previous token
 }
 void print_token(struct token* t) {
-    if (t == NULL) printf("NULL");
+    if (t == NULL) printf("NULL\n");
     switch (t->t) {
-    case t_punctuator:
-        printf("punct: ");
-        puts(t->str);
-        break;
-    case t_keyword:
-        printf("kw: ");
-        puts(t->str);
-        break;
-    case t_identifier:
-        printf("id: ");
-        puts(t->str);
-        break;
+    case t_punctuator: printf("punct: %s\n", t->str); break;
+    case t_keyword: printf("kw: %s\n", t->str); break;
+    case t_identifier: printf("id: %s\n", t->str); break;
     case t_string:
         if (t->string_prefix[0] != '\0')
             printf("prefix: %s\t string:", t->string_prefix);
@@ -574,21 +572,23 @@ void print_token(struct token* t) {
             printf("prefix: %s\t string:", t->string_prefix);
         printf("'%s'\n", t->str);
         break;
-    case t_unknown: printf("UNKNOWN"); break;
-    case t_EOF: puts("<EOF>"); break;
+    case t_unknown: printf("UNKNOWN\n"); break;
+    case t_EOF: printf("<EOF>\n"); break;
     case t_int: printf("(int)%llu\n", t->number); break;
     case t_float: printf("(float)%lf\n", t->floating_number); break;
-    case t_bad_token: fprintf(stderr, "<bad token>"); exit(1);
-    default: fprintf(stderr, "INTERNAL ERROR 103"); exit(1);
+    case t_bad_token: printf("<bad token>\n"); break;
+    default: printf("INTERNAL ERROR 103");
     }
 }
 
 void expect_token(const char* expected, struct context* input) {
-    //eat up the next token. crash if no match.
-    struct token* t = next(input);
+    //eat up the next token. error and ignore if no match.
+    struct token* t = peek(input);
     const char* delim = t->str;
     if (strcmp(delim, expected) != 0) {
-        log_error("expected `%s` before `%s`\n", expected, delim);
-        exit(1);
+        log_pos_error(stderr, input, t, "expected `%s` before `%s`\n", expected,
+                      delim);
+    } else { // otherwise consume the token
+        next(input);
     }
 }
