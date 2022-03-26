@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/times.h>
 
 //#define DEBUG
 
@@ -111,15 +110,6 @@ static inline int string_in_strings(char* s, const char** strings, int n) {
     return 0;
 }
 
-clock_t st_time;
-clock_t en_time;
-// void start_clock(){
-//     st_time = times(NULL);
-// }
-// void end_clock(){
-//     en_time = times(NULL);
-//     fprintf(stderr,"%jd",(intmax_t)(en_time - st_time));
-// }
 static inline char get_escape_sequence(struct context* input,
                                        unsigned long long* sum) {
     //assumes that the leading \ has been consumed. puts the next char in *sum.
