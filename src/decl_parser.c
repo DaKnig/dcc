@@ -303,21 +303,23 @@ struct init_declaration_list* parse_declaration(struct context* input) {
         }
 
         if (t->t != t_punctuator) {
-            log_error("expected `;` or `,` before %s\n", t->str);
-        } else
-            switch (t->str[0]) {
-            case ',':
-                next(input);
-                trailing_comma = true;
-                continue; // this allows trailing ','! [STANDARD]
-            case ';':
-                // dont consume ';'
-                trailing_comma = false;
-                continue;
-            default:
-                log_error("two or more data types in declaration "
-                          "specifiers\n");
-            }
+            log_pos_error(stderr, input, t,
+                          "expected `=`, `;` or `,` before %s\n", t->str);
+            exit(1);
+        }
+        switch (t->str[0]) {
+        case ',':
+            next(input);
+            trailing_comma = true;
+            continue; // this allows trailing ','! [STANDARD]
+        case ';':
+            // dont consume ';'
+            trailing_comma = false;
+            continue;
+        default:
+            log_error("two or more data types in declaration "
+                      "specifiers\n");
+        }
     }
     free(specs);
     if (trailing_comma) log_error("trailing comma in declaration\n");
