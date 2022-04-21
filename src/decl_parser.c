@@ -200,8 +200,8 @@ static inline struct decl_type get_declarator(struct context* input) {
         // add code here later for types 2-3
         break;
     case t_punctuator:
-        switch (t->str[0]) {
-        case '*':
+        // strcmp required for long punctuators
+        if (0 == strcmp("*", t->str)) {
             ret_val = (struct decl_type){
                 .t = d_ptr,
                 .is_const = false,
@@ -225,11 +225,13 @@ static inline struct decl_type get_declarator(struct context* input) {
             ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
             *ret_val.declarator = get_declarator(input);
             break;
-        //TODO - impl []()
-        case '[':
-        case '(': log_error("arrays, functions are not supported yet"); exit(1);
-        default:
-            log_error("expected identifier, '[' or '(' before '%s'", t->str);
+        } else if (0 == strcmp("[", t->str) || 0 == strcmp("*", t->str)) {
+            //TODO - impl []()
+            log_error("arrays, functions are not supported yet");
+            exit(1);
+        } else {
+            log_error("expected identifier, '*', '[' or '(' before '%s'",
+                      t->str);
             exit(1);
         }
         break;
