@@ -4,8 +4,12 @@ BINDIR := bin
 FUZZDIR := fuzz
 
 OBJS := pratt.o log.o atom.o statement_parser.o new_tokenizer.o \
-		decl_parser.o context.o
-CFLAGS :=-Og -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
+		decl_parser.o context.o top_level_parser.o
+
+OBJS := $(addprefix $(SRCDIR)/,$(OBJS))
+
+CFLAGS := -Isrc\
+	-O0 -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
 		-Wstrict-aliasing=1 -Wswitch -Wstrict-prototypes \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
 		-Wredundant-decls -Wno-unused -fmax-errors=2
@@ -22,7 +26,7 @@ all: $(BINDIR)/main #unit-tests
 memtest: $(BINDIR)/main
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all -v ./$^
 
-$(BINDIR)/main: $(OBJS) main.o | $(BINDIR)/
+$(BINDIR)/%: $(OBJS) $(SRCDIR)/%.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^
 
 unit-tests: $(TESTER) $(TESTS)
@@ -67,5 +71,13 @@ clean:
 	rm -f *.o
 	rm -f main
 	rm -f bin/*
+	rm -f src/*.o
+	rm -f $(TESTSDIR)/*/main
 run:$(BINDIR)/main
 	$(BINDIR)/main
+
+format:
+	clang-format -i src/*.c
+
+test: ./test/run_tests.sh all
+	./test/run_tests.sh

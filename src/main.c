@@ -1,6 +1,4 @@
-#include "new_tokenizer.h"
-#include "pratt.h"
-#include "statement_parser.h"
+#include "top_level_parser.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -11,39 +9,26 @@
 //extern struct token* token_stream;
 //extern unsigned token_stream_len;
 
-int main(void) {
-    char str[50000] = "{5+6*9;}";
+int main(int argc, char** argv) {
+    FILE* in_file = NULL;
 
-    printf("original: %s\n", str);
+    switch (argc) {
+    case 1:
+        in_file = stdin;
+        argv[1] = "<stdin>";
+        break;
+    case 2: in_file = fopen(argv[1], "r"); break;
+    default: printf("too many arguments"); return 1;
+    }
 
-    // token_stream_len = tokenize(&token_stream_head,str,ops,sizeof(ops)/sizeof(char*));
-    // token_stream=token_stream_head;
+    if (!in_file) {
+        perror("input file error: ");
+        return 1;
+    }
 
-    // printf("token stream:\n");
-    // print_tokens(token_stream_head,token_stream_len);
-
-    //	struct expr_ast* root = full_expression();
-    //	printf("ast:\n");
-    //	print_expr_ast(root,0);
-    struct context* input = create_ctx(stdin);
-    do {
-        // token_stream_len = tokenize(&token_stream_head,str,ops,sizeof(ops)/sizeof(char*));
-        // token_stream=token_stream_head;
-
-        // printf("token stream:\n");
-        // print_tokens(token_stream_head,token_stream_len);
-        struct statement* s = parse_statement(input);
-        puts("statement tree:");
-        print_statement(s, 0);
-        char* ptr;
-        for (ptr = str; !feof(stdin) && ptr < str + 40000; ptr++) {
-            *ptr = getchar();
-            if (*ptr == '\b') ptr--;
-        }
-        *ptr = '\0';
-        clearerr(stdin);
-    } while (1);
-    //	free_expr_ast(root);
-    // free_tokens(token_stream_head, token_stream_len);
+    struct context* input = create_ctx(in_file);
+    struct init_declaration_list* s = parse_translation_unit(input);
+    printf("tree representation of %s:", argv[1]);
+    print_declaration(s, 0);
     return 0;
 }
