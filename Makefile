@@ -48,13 +48,13 @@ $(BINDIR)/fuzz_lexer: CC := afl-gcc # Difficult not to hard code this
 $(BINDIR)/fuzz_lexer: $(FUZZDIR)/fuzz_lexer.c lexer.o token.o atom.o log.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-%.o: $(SRCDIR)/%.c
+%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 %/:
 	mkdir -p $@
 
-.PHONY: clean memtest unit-tests fuzz run
+.PHONY: clean memtest unit-tests fuzz run format test
 fuzz: $(BINDIR)/fuzz_lexer
 	# Usage:
 	# FUZZ_OUT=outdir make fuzz
