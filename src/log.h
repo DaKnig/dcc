@@ -21,6 +21,12 @@
         fprint_loc(errf, ctx, tok);         \
     } while (0)
 
+#define log_pos_warning(errf, ctx, tok, ...)\
+    do {                                    \
+        log_printf(LOG_WARN, __VA_ARGS__);  \
+        fprint_loc(errf, ctx, tok);         \
+    } while (0)
+
 #ifndef NDEBUG
     #define log_debug(...) log_printf(LOG_INFO, __VA_ARGS__)
 #else

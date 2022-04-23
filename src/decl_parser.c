@@ -165,7 +165,7 @@ static struct decl_specifiers* get_decl_specifiers(struct context* input) {
         memcpy(ret_val->full_type_specifiers, length, 4);
         break;
     case t_s_typeless: // fallthrough
-    default: log_error("bad type parsed");
+    default: log_error("bad type parsed\n");
     }
     if (ret_val->full_type_specifiers[0] == ' ')
         ret_val->full_type_specifiers[0]
@@ -218,7 +218,7 @@ static inline struct decl_type get_declarator(struct context* input) {
                 } else if (0 == strcmp(t->str, "volatile")) {
                     ret_val.is_volatile = true;
                 } else {
-                    log_error("unexpected token %s in pointer declarator",
+                    log_error("unexpected token %s in pointer declarator\n",
                               t->str);
                 }
             }
@@ -227,10 +227,10 @@ static inline struct decl_type get_declarator(struct context* input) {
             break;
         } else if (0 == strcmp("[", t->str) || 0 == strcmp("*", t->str)) {
             //TODO - impl []()
-            log_error("arrays, functions are not supported yet");
+            log_error("arrays, functions are not supported yet\n");
             exit(1);
         } else {
-            log_error("expected identifier, '*', '[' or '(' before '%s'",
+            log_error("expected identifier, '*', '[' or '(' before '%s'\n",
                       t->str);
             exit(1);
         }
@@ -244,7 +244,7 @@ static inline struct decl_type get_declarator(struct context* input) {
     case t_bad_token:
     case t_unknown: //fallthrough
     default:
-        log_error("expected identifier, '[' or '(' before '%s'", t->str);
+        log_error("expected identifier, '[' or '(' before '%s'\n", t->str);
         exit(1);
     }
     return ret_val;
@@ -282,12 +282,12 @@ struct init_declaration_list* parse_declaration(struct context* input) {
         };
         // get the name of the variable
         struct decl_type* d;
-        for (d = &ret_val->vars[ret_val->size - 1].t; d->t != d_base;) {
-            if (d->t == d_ptr || d->t == d_array) d = d->declarator;
-            else if (d->t == d_function) {
-                log_error("func decls are not supported yet");
+        for (d = &ret_val->vars[ret_val->size - 1].t;
+             d->t != d_base && d->t != d_function;) {
+            if (d->t == d_ptr || d->t == d_array) {
+                d = d->declarator;
             } else {
-                log_error("unknown decl type with ID=%d", (int)d->t);
+                log_error("unknown decl type with ID=%d\n", (int)d->t);
             }
         }
         ret_val->vars[ret_val->size - 1].name = d->name;
@@ -319,8 +319,9 @@ struct init_declaration_list* parse_declaration(struct context* input) {
             trailing_comma = false;
             continue;
         default:
-            log_error("two or more data types in declaration "
-                      "specifiers\n");
+            log_pos_error(stderr, input, t,
+                          "two or more data types in declaration "
+                          "specifiers\n");
         }
     }
     free(specs);

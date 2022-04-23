@@ -36,6 +36,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+struct c_var;
+
 struct decl_type {
     enum { d_base, d_ptr, d_array, d_function } t;
 
