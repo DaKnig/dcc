@@ -80,7 +80,7 @@ void fprint_loc(FILE* out, struct context* ctx, const struct token* t) {
     }
     // first, rewind to beginning of file/start of line
     fsetpos(ctx->file, &t->pos);
-    size_t col = t->col + (t->t != t_EOF);
+    size_t col = t->col + 1;
     do {
         long seek_by = col > (1 << 30) ? (1 << 30) : col;
         col -= seek_by;
