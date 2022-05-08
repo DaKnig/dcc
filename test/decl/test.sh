@@ -13,12 +13,20 @@ trap "rm -f '$output' '$errput'" EXIT
 
 for i in *.c.in; do
     printf "Testing $i ........ "
-    $DCC "$i" 2> "$errput" 1>"$output"
-    if [[ $? ]]; then
+    $DCC "$i" 2> "$errput" 1> "$output"
+    rc=$?
+
+    desired_errname=${i%.in}.err
+    if [ -f "$desired_errname" ]; then
+	diff "$desired_errname" "$errput"
+	rc=$?
+    fi
+
+    if [ $rc -ne 0 ]; then
 	printf "${red}FAILED!${resetcolors}\n"
 	cat "$output" "$errput"
 	printf "\nrunning rr...\n\n"
-	rr record -n $DCC "$i"
+	rr record -n $DCC "$i" 2>/dev/null
     else
 	printf "${green}PASSED!${resetcolors}\n"
     fi

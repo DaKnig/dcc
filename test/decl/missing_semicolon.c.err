@@ -1,0 +1,3 @@
+[[31;1m error [0m] expected `=`, `;` or `,` before <EOF>
+      1 | int a
+               ^
