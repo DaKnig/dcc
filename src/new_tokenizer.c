@@ -319,13 +319,15 @@ static inline struct token* get_char(struct context* input) {
                             "warning: %s escape sequence out of range"
                             " \\%llo \n",
                             type == '0' ? "octal" : "hex", sum);
-                } else
+                } else {
                     goto multibyte_char_warning;
+                }
             }
             c = sum;
             break;
         case 's': break; //continue to getting the next char
         }
+        break;
     default: break;
     }
     input->buffer[input->token].str[0] = (unsigned char)c;
