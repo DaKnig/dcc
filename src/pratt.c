@@ -56,6 +56,7 @@ int bp(struct context* input, const struct token* token, const enum notation n) 
 	higher is equally tight (including ;)
 */
     //need to find out how to do ?:
+    //need to find out how to do []
     int ret_val;
     if (token == NULL) {
         fprintf(stderr, "expected ';'");
@@ -134,7 +135,7 @@ int bp(struct context* input, const struct token* token, const enum notation n) 
     else {
         log_pos_error(stderr, input, token,
                       "tried to evaluate the binding power of %s."
-                      " failed miserably.",
+                      " failed miserably.\n",
                       token->str);
         exit(1);
     }

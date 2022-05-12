@@ -197,7 +197,13 @@ static inline struct decl_type get_declarator(struct context* input) {
             .t = d_base,
             .name = strdup(t->str),
         };
-        // add code here later for types 2-3
+        // code for types 2-3
+        t = peek(input);
+        if (t->str[0] == '[' || t->str[0] == '(') {
+            log_pos_error(stderr, input, t,
+                          "declarator types 2, 3 not supported yet.\n");
+            exit(1);
+        }
         break;
     case t_punctuator:
         // strcmp required for long punctuators

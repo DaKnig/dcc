@@ -523,21 +523,21 @@ struct token* next(struct context* input) {
     }
 
     if (result->t == t_EOF) {
-	// EOF token should point to one past where last token ended
-	struct token* last_token = &input->buffer[input->token^1];
-	result->col = last_token->col + strlen(last_token->str);
-	result->row = last_token->row;
-	
-	// rewind to the start position of last token...
-	fsetpos(input->file, &last_token->pos);
-	// ... and move to right after the token ...
-	fseek(input->file, strlen(result->str), SEEK_CUR);
-	// ... and finally get the current position.
-	fgetpos(input->file, &result->pos);
+        // EOF token should point to one past where last token ended
+        struct token* last_token = &input->buffer[input->token ^ 1];
+        result->col = last_token->col + strlen(last_token->str);
+        result->row = last_token->row;
+
+        // rewind to the start position of last token...
+        fsetpos(input->file, &last_token->pos);
+        // ... and move to right after the token ...
+        fseek(input->file, strlen(result->str), SEEK_CUR);
+        // ... and finally get the current position.
+        fgetpos(input->file, &result->pos);
     } else {
-	result->col = begin_col;
-	result->row = input->row;
-	result->pos = begin_pos;
+        result->col = begin_col;
+        result->row = input->row;
+        result->pos = begin_pos;
     }
 
     //until you find one that works
