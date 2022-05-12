@@ -259,7 +259,7 @@ static inline struct decl_type get_declarator(struct context* input) {
 struct init_declaration_list* parse_declaration(struct context* input) {
     // declaration := declaration-specifiers [init-declarator-list] ";"
 
-    struct init_declaration_list* ret_val = xmalloc(sizeof(ret_val));
+    struct init_declaration_list* ret_val = xmalloc(sizeof *ret_val);
     *ret_val = (struct init_declaration_list){
         .size = 0,
         .vars = NULL,

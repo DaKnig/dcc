@@ -62,7 +62,7 @@ int bp(struct context* input, const struct token* token, const enum notation n) 
         fprintf(stderr, "expected ';'");
         exit(1);
     } else if (strcmp(token->str, ";") == 0 || strcmp(token->str, ")") == 0
-               || strcmp(token->str, ":") == 0)
+               || strcmp(token->str, "]") == 0 || strcmp(token->str, ":") == 0)
         ret_val = prefix_or_infix(n, 17, 17);
     else if (strcmp(token->str, ",") == 0)
         ret_val = infix_only(token, n, 15);
