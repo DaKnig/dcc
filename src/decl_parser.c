@@ -231,9 +231,35 @@ static inline struct decl_type get_declarator(struct context* input) {
             ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
             *ret_val.declarator = get_declarator(input);
             break;
-        } else if (0 == strcmp("[", t->str) || 0 == strcmp("*", t->str)) {
-            //TODO - impl []()
-            log_error("arrays, functions are not supported yet\n");
+        } else if (0 == strcmp("[", t->str)) {
+            // [] before identifier
+            ret_val = (struct decl_type){
+                .t = d_array,
+                .is_const = false,
+                .is_restrict = false,
+                .is_volatile = false,
+                .is_static = false,
+                .size = NULL, // not yet decided
+            };
+            // now expecting one of:
+            // - an expression with bp("=")
+            // - list of type qualifiers/static (UNIMPLEMENTED)
+            // - nothing
+            t = peek(input);
+            if (0 != strcmp("]", t->str)) { // not empty
+                // get expression with bp("=") - which is lower than []
+                ret_val.size = expr(
+                    bp(input, &(struct token){.str = strdup("=")}, infix),
+                    input);
+            }
+            // now expecting "]"
+            expect_token("]", input);
+            ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
+            *ret_val.declarator = get_declarator(input);
+            break;
+        } else if (0 == strcmp("(", t->str)) {
+            //TODO - impl ()
+            log_error("functions are not supported yet\n");
             exit(1);
         } else {
             log_error("expected identifier, '*', '[' or '(' before '%s'\n",
