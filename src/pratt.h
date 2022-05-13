@@ -7,7 +7,7 @@
 	It advances the token_stream only when a token is consumed, meaning that it
 	does not check or consume the delimiter of the expression
 *******************************************************************************/
-struct context;
+#include "context.h"
 
 enum expr_ast_type {
     term,
@@ -23,14 +23,14 @@ struct expr_ast {
     enum expr_ast_type type;
     union {
         struct { //term
-            struct token* token;
+            struct token token;
         };
         struct { //op - unary, binary, ternary
-            struct token* op;
+            struct token op;
             struct expr_ast* term[3];
         };
         struct { //func call,comma///fix is required!!!
-            struct token* func_name;
+            struct token func_name;
             struct expr_ast** argv;
             int argc;
             //pointer to a block

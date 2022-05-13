@@ -151,7 +151,7 @@ static inline struct expr_ast* make_bin_tree(struct expr_ast* left,
     }
     struct expr_ast* bin_tree = xmalloc(sizeof(struct expr_ast));
     *bin_tree = (struct expr_ast){
-        .type = bin_op, .op = operator, .term[0] = left, .term[1] = right};
+        .type = bin_op, .op = *operator, .term[0] = left, .term[1] = right};
     return bin_tree;
 }
 static inline struct expr_ast* make_unary_tree(struct expr_ast* left,
@@ -164,7 +164,9 @@ static inline struct expr_ast* make_unary_tree(struct expr_ast* left,
 static inline struct expr_ast* make_term_tree(struct token* token) {
     struct expr_ast* tmp = xmalloc(sizeof(struct expr_ast));
     tmp->type = term;
-    tmp->token = token;
+    // deep copy of the token
+    tmp->token = *token;
+    tmp->token.str = strdup(token->str);
     return tmp;
 }
 
@@ -237,10 +239,11 @@ static inline struct expr_ast*
             assert(("expected something after the :", right != NULL));
             struct expr_ast* ternary_tree = xmalloc(sizeof(struct expr_ast));
             *ternary_tree = (struct expr_ast){.type = ternary_op,
-                                              .op = operator,
+                                              .op = *operator,
                                               .term[0] = left,
                                               .term[1] = middle,
                                               .term[2] = right};
+            ternary_tree->op.str = strdup(operator->str);
             return ternary_tree;
         }
         /*if nothing else is matched*/
@@ -277,8 +280,7 @@ static inline struct expr_ast*
 struct expr_ast* make_comma_tree(struct context* input) {
     struct token* delim;
     struct expr_ast* temp = xmalloc(sizeof(struct expr_ast));
-    *temp = (struct expr_ast){
-        .type = comma, .argc = 0, .argv = NULL, .func_name = NULL};
+    *temp = (struct expr_ast){.type = comma, .argc = 0, .argv = NULL};
     do {
         temp->argv
             = xrealloc(temp->argv, sizeof(struct expr_ast[++temp->argc]));
@@ -307,7 +309,8 @@ struct expr_ast* nud(struct token* token, struct context* input) {
                 }
             }
 
-            temp->func_name = token;
+            temp->func_name = *token;
+            temp->func_name.str = strdup(token->str);
             temp->type = func_call;
             ret_val = temp;
         }
@@ -352,25 +355,25 @@ static inline void print_indent(int i) {
 void print_expr_ast(struct expr_ast* root, int indent) {
     print_indent(indent);
     switch (root->type) {
-    case term: print_token(root->token); break;
+    case term: print_token(&root->token); break;
 
     case ternary_op:
-        print_token(root->op);
+        print_token(&root->op);
         for (int i = 0; i < 3; i++) print_expr_ast(root->term[i], indent + 1);
         break;
 
     case bin_op:
-        print_token(root->op);
+        print_token(&root->op);
         for (int i = 0; i < 2; i++) print_expr_ast(root->term[i], indent + 1);
         break;
 
     case unary_op:
-        print_token(root->op);
+        print_token(&root->op);
         print_expr_ast(root->term[0], indent + 1);
         break;
 
     case func_call:
-        print_token(root->func_name);
+        print_token(&root->func_name);
         for (int i = 0; i < root->argc; i++) {
             print_expr_ast(root->argv[i], indent + 1);
         }
