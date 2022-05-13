@@ -322,7 +322,7 @@ struct init_declaration_list* parse_declaration(struct context* input) {
             continue; // this allows trailing ','! [STANDARD]
         case ';':
             // dont consume ';'
-            trailing_comma = false;
+            // trailing_comma = false;
             continue;
         default:
             log_pos_error(stderr, input, t,
@@ -352,9 +352,9 @@ static inline void print_decl_type(struct decl_type* d_t, int indent) {
         if (d_t->is_static) printf("static ");
 
         printf(d_t->t == d_array ? "array " : "pointer ");
-        if (d_t->size) {
-            printf("of size ");
-            print_expr_ast(d_t->size, 0);
+        if (d_t->t == d_array && d_t->size) {
+            printf("of size \n");
+            print_expr_ast(d_t->size, indent + 1);
         }
 
         assert(d_t->declarator);

@@ -10,8 +10,6 @@ struct init_declaration_list* parse_translation_unit(struct context* input) {
     while (!token_feof(input)) {
         // first read the new batch of declarations
         struct init_declaration_list* tmp = parse_declaration(input);
-        // prepare ret_val for moving the values
-        ret_val->size += tmp->size;
         // realloc the stuff inside ret_val
         size_t s = ret_val->size + tmp->size;
         ret_val->vars = xrealloc(ret_val->vars, s * sizeof *ret_val->vars);

@@ -50,7 +50,8 @@ void token_ungetc(int c, struct context* ctx) {
 }
 
 int token_feof(struct context* ctx) {
-    if (ctx->stack_head == ctx->stack) return feof(ctx->file);
+    if (ctx->stack_head == ctx->stack)
+        return feof(ctx->file) || peek(ctx)->t == t_EOF;
     else
         return 0;
 }
