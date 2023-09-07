@@ -176,14 +176,64 @@ static struct decl_specifiers* get_decl_specifiers(struct context* input) {
     return ret_val;
 }
 
+static inline struct decl_type get_array_decl(struct context* input) {
+    // array-declaration :=
+    // @       "[" [type-qualifier-or-static-list] expr(bp("=")) "]"
+    //         "[" [type-qualifier-list] "*" "]"
+
+    // however, the first "[" is already consumed.
+#define ARRAY_QUALIFIER_AND_STATIC(XX) \
+    XX(const)                          \
+    XX(restrict)                       \
+    XX(volatile)                       \
+    XX(static)
+
+#define XX(q) .is_##q = false,
+
+    struct decl_type ret_val = {
+        .t = d_array,
+        ARRAY_QUALIFIER_AND_STATIC(XX)
+        .size = NULL, // not yet decided
+    };
+    // now expecting one of:
+    // - an expression with bp("=")
+    // - list of type qualifiers/static
+    // - nothing
+    struct token* t = peek(input);
+#undef XX
+#define XX(q)                      \
+    if (0 == strcmp(#q, t->str)) { \
+        ret_val.is_##q = true;     \
+        next(input);               \
+        t = peek(input);           \
+        continue;                  \
+    }
+    while (1) { // read type-qualifier-list
+        ARRAY_QUALIFIER_AND_STATIC(XX)
+        break;
+    }
+#undef XX
+#undef ARRAY_QUALIFIER_AND_STATIC
+
+    if (0 != strcmp("]", t->str)) { // not empty
+        // get expression with bp("=") - which is lower than []
+        ret_val.size = expr(
+            bp(input, &(struct token){.str = strdup("=")}, infix), input);
+    }
+    // now expecting "]"
+    expect_token("]", input);
+
+    return ret_val;
+}
+
 static inline struct decl_type get_declarator(struct context* input) {
     // declarator :=
     // @         identifier
-    //           identifier array-declaration
+    // @         identifier array-declaration
     //           identifier function-declarator
     //
     // @         * [type-qualifier-list] declarator
-    //           array-declaration declarator
+    // @         array-declaration declarator
     //           "(" parameter-type-list ")" declarator
 
     // that's still too complex. what's implemented would be marked with @
@@ -197,11 +247,18 @@ static inline struct decl_type get_declarator(struct context* input) {
             .t = d_base,
             .name = strdup(t->str),
         };
-        // code for types 2-3
+        // code for special cases : types 2-3 :
         t = peek(input);
-        if (t->str[0] == '[' || t->str[0] == '(') {
+        if (t->str[0] == '[') {
+            next(input);
+            struct decl_type arr_decl = get_array_decl(input);
+            arr_decl.declarator = xmalloc(sizeof *arr_decl.declarator);
+            *arr_decl.declarator = ret_val;
+            ret_val = arr_decl;
+            break;
+        } else if (t->str[0] == '(') {
             log_pos_error(stderr, input, t,
-                          "declarator types 2, 3 not supported yet.\n");
+                          "declarator type 3 not supported yet.\n");
             exit(1);
         }
         break;
@@ -228,32 +285,14 @@ static inline struct decl_type get_declarator(struct context* input) {
                               t->str);
                 }
             }
-            ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
-            *ret_val.declarator = get_declarator(input);
+            struct decl_type tmp = get_declarator(input);
+            tmp.declarator = xmalloc(sizeof *ret_val.declarator);
+            *tmp.declarator = ret_val;
+            ret_val = tmp;
             break;
         } else if (0 == strcmp("[", t->str)) {
             // [] before identifier
-            ret_val = (struct decl_type){
-                .t = d_array,
-                .is_const = false,
-                .is_restrict = false,
-                .is_volatile = false,
-                .is_static = false,
-                .size = NULL, // not yet decided
-            };
-            // now expecting one of:
-            // - an expression with bp("=")
-            // - list of type qualifiers/static (UNIMPLEMENTED)
-            // - nothing
-            t = peek(input);
-            if (0 != strcmp("]", t->str)) { // not empty
-                // get expression with bp("=") - which is lower than []
-                ret_val.size = expr(
-                    bp(input, &(struct token){.str = strdup("=")}, infix),
-                    input);
-            }
-            // now expecting "]"
-            expect_token("]", input);
+            ret_val = get_array_decl(input);
             ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
             *ret_val.declarator = get_declarator(input);
             break;
@@ -312,6 +351,9 @@ struct init_declaration_list* parse_declaration(struct context* input) {
             .t = get_declarator(input),
             .name = NULL,
         };
+
+		trailing_comma = false;
+
         // get the name of the variable
         struct decl_type* d;
         for (d = &ret_val->vars[ret_val->size - 1].t;
@@ -327,7 +369,6 @@ struct init_declaration_list* parse_declaration(struct context* input) {
         t = peek(input); // now it's one of [=,;] or an error
         if (0 == strcmp(t->str, "=")) {
             next(input);
-            &(const struct token){.str = "=", .t = t_punctuator};
             ret_val->init_values[ret_val->size - 1] = expr(
                 bp(input, &(const struct token){.str = "=", .t = t_punctuator},
                    infix),
@@ -365,13 +406,25 @@ struct init_declaration_list* parse_declaration(struct context* input) {
 
 static inline void print_decl_type(struct decl_type* d_t, int indent) {
     // assume we are at the start of the line
-    for (int i = 0; i < indent; i++) printf("\t");
     switch (d_t->t) {
     case d_function:
         printf("function declaration - unsupported as of now!\n");
         break;
     case d_array:
     case d_ptr:
+        // reminder: this is saved in a linked list, of sorts, in reverse
+        assert(d_t->declarator);
+        if (d_t->declarator->t == d_ptr || d_t->declarator->t == d_array) {
+            // print the list inverted
+            print_decl_type(d_t->declarator, indent + 1);
+        } else if (d_t->declarator->t == d_base) {
+            // just print the current thing and finish it
+        } else {
+            // idk how or what
+            printf("function declaration - unsupported as of now!\n");
+            break;
+        }
+        for (int i = 0; i < indent; i++) printf("\t");
         if (d_t->is_const) printf("const ");
         if (d_t->is_restrict) printf("restrict ");
         if (d_t->is_volatile) printf("volatile ");
@@ -382,10 +435,8 @@ static inline void print_decl_type(struct decl_type* d_t, int indent) {
             printf("of size \n");
             print_expr_ast(d_t->size, indent + 1);
         }
-
-        assert(d_t->declarator);
         printf(d_t->t == d_array ? "of:\n" : "to:\n");
-        print_decl_type(d_t->declarator, indent + 1);
+        for (int i = 0; i < indent; i++) printf("\t");
         break;
     case d_base: break; // no point in printing the name
     }

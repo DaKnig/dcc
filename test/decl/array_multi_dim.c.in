@@ -1,0 +1,1 @@
+int [const 1] [restrict const 2] foo[static 3];

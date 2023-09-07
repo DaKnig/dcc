@@ -12,7 +12,8 @@ CFLAGS := -Isrc\
 	-O0 -ggdb -Wall -Werror -Wextra -Wshadow -Wcast-qual \
 		-Wstrict-aliasing=1 -Wswitch -Wstrict-prototypes \
 		-Wundef -Wpointer-arith -Wformat-security -Winit-self \
-		-Wredundant-decls -Wno-unused -fmax-errors=2
+		-Wredundant-decls -Wno-unused -fmax-errors=2 \
+#		-fsanitize=address -fno-omit-frame-pointer
 
 TESTS :=  $(BINDIR)/test_logging $(BINDIR)/test_atom $(BINDIR)/simple_decl \
 		$(BINDIR)/tokenizer_test

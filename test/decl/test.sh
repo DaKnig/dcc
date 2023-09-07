@@ -22,11 +22,20 @@ for i in *.c.in; do
 	rc=$?
     fi
 
+    desired_outname=${i%.in}.out
+    if [ -f "$desired_outname" ]; then
+	diff "$desired_outname" "$output"
+	rc=$(( $? || $rc))
+    else
+	echo "missing file $desired_outname"
+	rc=1
+    fi
+
     if [ $rc -ne 0 ]; then
 	printf "${red}FAILED!${resetcolors}\n"
 	cat "$output" "$errput"
 	printf "\nrunning rr...\n\n"
-	rr record -n $DCC "$i" 2>/dev/null
+	rr record -n $DCC "$i" 2>/dev/null 1>/dev/null
     else
 	printf "${green}PASSED!${resetcolors}\n"
     fi

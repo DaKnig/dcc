@@ -1,0 +1,6 @@
+tree representation of array_with_type_qualifiers.c.in:
+foo is a 
+	const array of size 
+|   |   -> (int)5
+of:
+	i16 ;

@@ -3,6 +3,5 @@ bin/*
 *.o
 .vscode/*
 tags
-*.out
 core.*
 *~
