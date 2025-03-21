@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 
-static struct decl_specifiers* get_decl_specifiers(struct context* input) {
+struct decl_specifiers* get_decl_specifiers(struct context* input) {
     // syntax described at docs/declaration-specifier.dot
     struct decl_specifiers* ret_val = xmalloc(sizeof *ret_val);
     *ret_val = (struct decl_specifiers){
@@ -17,8 +17,6 @@ static struct decl_specifiers* get_decl_specifiers(struct context* input) {
         .is_restrict = false,
         .is_volatile = false,
         .is_inline = false,
-
-        .full_type_specifiers = "",
 
         .signedness = t_s_none,
         .length_modifier = t_s_natural,
@@ -139,41 +137,40 @@ static struct decl_specifiers* get_decl_specifiers(struct context* input) {
         log_warn("'extern' storage class is not supported\n");
     }
 
-    // construct the full type
-    ret_val->full_type_specifiers[0]
-        = ret_val->signedness == t_s_unsigned ? 'u' : 'i'; // sign
-
-    switch (ret_val->core_type) {
-    case t_s_void: memcpy(ret_val->full_type_specifiers, "void", 4); break;
-    case t_s_double:
-    case t_s_float:
-        memcpy(ret_val->full_type_specifiers,
-               ret_val->core_type == t_s_float ? "f32" : "f64", 4);
-        break;
-    case t_s_char:
-        memcpy(ret_val->full_type_specifiers,
-               " 8\0\0", //\0 to keep it 4 bytes
-               4); // 4 because that's optimized to 1 int equality
-        break;
-    case t_s_int:;
-        const char* length = (const char*[]){
-            [1 + t_s_short] = " 16", // the 1+ is to deal with the
-            [1 + t_s_natural] = " 16", // negative index problem
-            [1 + t_s_long] = " 32",
-            [1 + t_s_long_long] = " 64",
-        }[1 + ret_val->length_modifier];
-        memcpy(ret_val->full_type_specifiers, length, 4);
-        break;
-    case t_s_typeless: // fallthrough
-    default: log_error("bad type parsed\n");
-    }
-    if (ret_val->full_type_specifiers[0] == ' ')
-        ret_val->full_type_specifiers[0]
-            = ret_val->signedness == t_s_unsigned ? 'u' : 'i'; // sign for ints
-
-    assert(strchr("uifv", ret_val->full_type_specifiers[0]));
-
     return ret_val;
+}
+
+const char *full_type_specifiers(struct decl_specifiers* ret_val) {
+  static char buffer[4] = "";
+  const char *ret;
+
+  switch (ret_val->core_type) {
+  case t_s_void:
+	  return "void";
+  case t_s_double:
+  case t_s_float:
+	  return ret_val->core_type == t_s_float ? "f32" : "f64";
+  case t_s_char:
+    memcpy(buffer,
+           " 8\0\0", //\0 to keep it 4 bytes
+           4);       // 4 because that's optimized to 1 int equality
+    break;
+  case t_s_int:;
+    const char *length = (const char *[]){
+        [1 + t_s_short] = " 16",   // the 1+ is to deal with the
+        [1 + t_s_natural] = " 16", // negative index problem
+        [1 + t_s_long] = " 32",
+        [1 + t_s_long_long] = " 64",
+    }[1 + ret_val->length_modifier];
+    memcpy(buffer, length, 4);
+    break;
+  case t_s_typeless: // fallthrough
+  default:
+    log_error("bad type parsed\n");
+  }
+  buffer[0] = ret_val->signedness == t_s_unsigned ? 'u' : 'i'; // sign
+
+  return buffer;
 }
 
 static inline struct decl_type get_array_decl(struct context* input) {
@@ -226,7 +223,7 @@ static inline struct decl_type get_array_decl(struct context* input) {
     return ret_val;
 }
 
-static inline struct decl_type get_declarator(struct context* input) {
+inline struct decl_type get_declarator(struct context* input) {
     // declarator :=
     // @         identifier
     // @         identifier array-declaration
@@ -349,7 +346,6 @@ struct init_declaration_list* parse_declaration(struct context* input) {
         ret_val->vars[ret_val->size - 1] = (struct c_var){
             .specifiers = *specs,
             .t = get_declarator(input),
-            .name = NULL,
         };
 
 		trailing_comma = false;
@@ -364,7 +360,6 @@ struct init_declaration_list* parse_declaration(struct context* input) {
                 log_error("unknown decl type with ID=%d\n", (int)d->t);
             }
         }
-        ret_val->vars[ret_val->size - 1].name = d->name;
 
         t = peek(input); // now it's one of [=,;] or an error
         if (0 == strcmp(t->str, "=")) {
@@ -446,7 +441,6 @@ void print_declaration(struct init_declaration_list* decls, int) {
     for (size_t i = 0; i < decls->size; i++) {
         struct c_var* var = &decls->vars[i];
         // print name:
-        printf("%s is ", var->name);
         /*    print_decl_type(struct decl_type* d_t, int indent)    */
         // print specifiers
         struct decl_specifiers specs = var->specifiers;
@@ -468,7 +462,7 @@ void print_declaration(struct init_declaration_list* decls, int) {
         if (var->specifiers.is_inline) printf("inline ");
 
         // now to the base type- ([ui](8|16))|([uif](32|64))|void
-        printf("%.4s ", var->specifiers.full_type_specifiers);
+        printf("%.4s ", full_type_specifiers(&var->specifiers));
         // print init values
 
         if (decls->init_values[i]) {

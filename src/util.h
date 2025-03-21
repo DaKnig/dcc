@@ -50,7 +50,7 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-static inline void *xmalloc(size_t sz) {
+static void *xmalloc(size_t sz) {
     void *const ret = malloc(sz);
     if (!ret) {
         fprintf(stderr, "fatal: malloc(%zu): %s\n", sz, strerror(errno));

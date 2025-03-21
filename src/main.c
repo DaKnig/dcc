@@ -27,8 +27,8 @@ int main(int argc, char** argv) {
     }
 
     struct context* input = create_ctx(in_file);
-    struct init_declaration_list* s = parse_translation_unit(input);
+    struct init_declaration_list s = parse_translation_unit(input);
     printf("tree representation of %s:\n", argv[1]);
-    print_declaration(s, 0);
+    print_declaration(&s, 0);
     return 0;
 }
