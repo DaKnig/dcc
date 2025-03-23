@@ -1,1 +1,1 @@
-int [const 1] [restrict const 2] foo[static 3];
+int foo[static 3][restrict const 2][const 1];

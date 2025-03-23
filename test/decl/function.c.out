@@ -1,0 +1,10 @@
+tree representation of function.c.in:
+fibo is a 
+function (
+		x is a 
+		i16 ;
+)
+	returning 
+		a 
+		i32 ;
+i32 ;

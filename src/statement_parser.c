@@ -139,7 +139,7 @@ void print_statement(struct statement* s, int indent) {
             if (b->e[i].t == s_statement)
                 print_statement(b->e[i].s, indent + 1);
             else
-                print_declaration(b->e[i].d, indent + 1);
+                print_declaration(&b->e[i].d, indent + 1);
         }
         break;
     case s_expression:
@@ -201,7 +201,7 @@ void print_statement(struct statement* s, int indent) {
 }
 
 void print_block_element(struct block_element* element, int indent) {
-    if (element->t == s_declaration) print_declaration(element->d, indent);
+    if (element->t == s_declaration) print_declaration(&element->d, indent);
     else if (element->t == s_statement)
         print_statement(element->s, indent);
     else

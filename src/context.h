@@ -17,6 +17,7 @@ struct context {
 };
 
 struct context* create_ctx(FILE* f);
+void free_ctx(struct context *ctx);
 int token_getc(struct context* ctx);
 void token_ungetc(int c, struct context* ctx);
 int token_feof(struct context* ctx);

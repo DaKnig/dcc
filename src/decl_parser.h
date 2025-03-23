@@ -5,9 +5,6 @@
   this is a parser for an alternative C declaration syntax, described here:
   https://gist.github.com/aaaaaa123456789/96f1163c4672af55bb8cec5ca026839c
   specifically, the following definitions changed:
-  - declarator
-  - direct-declarator
-  - pointer
   - abstract-declarator
   - abstract-array-declaration
   - abstract-function-declaration
@@ -41,8 +38,9 @@ struct c_func;
 struct decl_type {
   enum { d_base, d_ptr, d_array, d_function } t;
 
+  char *id;
+
   union {
-    char *name;                                // d_base
     struct {                                   // d_ptr/d_array
       bool is_const, is_restrict, is_volatile; // type-qualifier-list
       bool is_static;                          // for array size
@@ -81,10 +79,9 @@ struct decl_specifiers {
 };
 
 struct c_var {
-  // things specifiers that apply to a variable, not to a type
-  // register, static etc- we cant really define pointers to such things
-  struct decl_specifiers specifiers;
-  struct decl_type t;
+    struct decl_specifiers specifiers; // the base type (after all pointers)
+    struct decl_type t;
+    char* name; // if NULL, derives from t
 };
 
 struct init_declaration_list {
@@ -94,10 +91,12 @@ struct init_declaration_list {
   struct expr_ast **init_values; // with matching indexes; NULL if none
 };
 
-void print_declaration(struct init_declaration_list *d, int indent);
-struct init_declaration_list *parse_declaration(struct context *input);
+void print_declaration(const struct init_declaration_list *d, int indent);
+struct init_declaration_list parse_declaration(struct context *input);
 
-struct decl_specifiers *get_decl_specifiers(struct context *input);
-struct decl_type get_declarator(struct context *input);
+struct decl_specifiers get_decl_specifiers(struct context *input);
+struct decl_type get_declarator(struct context *input, struct decl_specifiers);
+
+void free_c_var(struct c_var *var);
 
 #endif

@@ -1,1 +1,1 @@
-int fibo(int);
+long fibo(int x);

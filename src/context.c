@@ -64,12 +64,28 @@ struct context* create_ctx(FILE* f) {
     c->stack_size = 1;
     c->stack_head = c->stack;
     c->buffer_size = 1 << 15;
-    c->buffer[0].str = xmalloc(c->buffer_size);
-    c->buffer[1].str = xmalloc(c->buffer_size);
+	c->buffer[0] = (struct token) {
+		.str = xmalloc(c->buffer_size),
+		.t = t_bad_token
+	};
+	c->buffer[1] = (struct token) {
+		.str = xmalloc(c->buffer_size),
+		.t = t_bad_token
+	};
     c->token = 0;
     c->row = c->col = 0; // 1 indexed
+
+    token_ungetc(' ', c); // initialize unused stack
     next(c); // put one valid token into it
     return c;
+}
+
+void free_ctx(struct context *ctx) {
+    if (ctx->file)
+		fclose(ctx->file);
+	free(ctx->buffer[0].str);
+	free(ctx->buffer[1].str);
+	free(ctx);
 }
 
 void fprint_loc(FILE* out, struct context* ctx, const struct token* t) {
@@ -109,4 +125,5 @@ void fprint_loc(FILE* out, struct context* ctx, const struct token* t) {
     fputc('\n', out);
     str[n] = '\0';
     fprintf(out, "%s^\n", str);
+    free(str);
 }

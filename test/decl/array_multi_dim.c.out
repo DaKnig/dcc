@@ -1,12 +1,12 @@
 tree representation of array_multi_dim.c.in:
 foo is a 
-			static array of size 
-|   |   |   |   -> (int)3
+	static array of size
+|   |   -> (int)3
 of:
-					const restrict array of size 
+			const restrict array of size
 |   |   |   -> (int)2
 of:
-			const array of size 
-|   |   -> (int)1
+					const array of size
+|   |   |   |   -> (int)1
 of:
-	i16 ;
+			i16 ;

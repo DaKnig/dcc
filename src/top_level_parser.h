@@ -19,5 +19,6 @@ struct external_declaration {
 };
 
 struct init_declaration_list parse_translation_unit(struct context* input);
+void free_translation_unit(struct init_declaration_list* tu);
 
 #endif // TOP_LEVEL_PARSER

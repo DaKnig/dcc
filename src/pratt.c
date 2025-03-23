@@ -389,7 +389,7 @@ void print_expr_ast(struct expr_ast* root, int indent) {
 
 void free_expr_ast(struct expr_ast* root) {
     switch (root->type) {
-    case term: break;
+    case term: free(root->token.str); break;
     case ternary_op: free_expr_ast(root->term[2]); //fallthrough
     case bin_op: free_expr_ast(root->term[1]); //fallthrough
     case unary_op: free_expr_ast(root->term[0]); break;

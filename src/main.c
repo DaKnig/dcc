@@ -30,5 +30,8 @@ int main(int argc, char** argv) {
     struct init_declaration_list s = parse_translation_unit(input);
     printf("tree representation of %s:\n", argv[1]);
     print_declaration(&s, 0);
+
+    free_translation_unit(&s);
+    free_ctx(input);
     return 0;
 }

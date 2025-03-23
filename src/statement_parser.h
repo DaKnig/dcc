@@ -9,7 +9,7 @@ struct context;
 struct block_element {
     enum { s_statement, s_declaration } t;
     struct statement* s;
-    struct init_declaration_list* d;
+    struct init_declaration_list d;
 };
 
 struct block {
