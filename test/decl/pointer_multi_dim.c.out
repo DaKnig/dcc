@@ -1,0 +1,6 @@
+tree representation of pointer_multi_dim.c.in:
+p is a 
+	pointer to:
+			volatile pointer to:
+					const pointer to:
+			restrict i16 ;

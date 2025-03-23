@@ -1,1 +1,1 @@
-int [const 5] foo;
+int foo[const 5];

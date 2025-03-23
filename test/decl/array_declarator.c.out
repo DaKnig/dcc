@@ -1,6 +1,6 @@
 tree representation of array_declarator.c.in:
 foo is a 
-	array of size 
+	array of size
 |   |   -> (int)5
 of:
 	i16 ;

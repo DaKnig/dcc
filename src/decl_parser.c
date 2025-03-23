@@ -140,33 +140,30 @@ struct decl_specifiers* get_decl_specifiers(struct context* input) {
     return ret_val;
 }
 
-const char *full_type_specifiers(struct decl_specifiers* ret_val) {
+const char* full_type_specifiers(struct decl_specifiers* ret_val) {
   static char buffer[4] = "";
-  const char *ret;
+  const char* ret;
 
   switch (ret_val->core_type) {
-  case t_s_void:
-	  return "void";
+  case t_s_void: return "void";
   case t_s_double:
-  case t_s_float:
-	  return ret_val->core_type == t_s_float ? "f32" : "f64";
+  case t_s_float: return ret_val->core_type == t_s_float ? "f32" : "f64";
   case t_s_char:
     memcpy(buffer,
            " 8\0\0", //\0 to keep it 4 bytes
-           4);       // 4 because that's optimized to 1 int equality
+           4); // 4 because that's optimized to 1 int equality
     break;
   case t_s_int:;
-    const char *length = (const char *[]){
-        [1 + t_s_short] = " 16",   // the 1+ is to deal with the
-        [1 + t_s_natural] = " 16", // negative index problem
-        [1 + t_s_long] = " 32",
-        [1 + t_s_long_long] = " 64",
+    const char* length = (const char*[]){
+      [1 + t_s_short] = " 16", // the 1+ is to deal with the
+      [1 + t_s_natural] = " 16", // negative index problem
+      [1 + t_s_long] = " 32",
+      [1 + t_s_long_long] = " 64",
     }[1 + ret_val->length_modifier];
     memcpy(buffer, length, 4);
     break;
   case t_s_typeless: // fallthrough
-  default:
-    log_error("bad type parsed\n");
+  default: log_error("bad type parsed\n");
   }
   buffer[0] = ret_val->signedness == t_s_unsigned ? 'u' : 'i'; // sign
 
@@ -223,103 +220,194 @@ static inline struct decl_type get_array_decl(struct context* input) {
     return ret_val;
 }
 
-inline struct decl_type get_declarator(struct context* input) {
-    // declarator :=
-    // @         identifier
-    // @         identifier array-declaration
-    //           identifier function-declarator
-    //
-    // @         * [type-qualifier-list] declarator
-    // @         array-declaration declarator
-    //           "(" parameter-type-list ")" declarator
+static inline struct expr_ast*
+    parse_assignment_expression(struct context* input) {
+    static const struct token eq = {.str = "=", .t = t_punctuator};
+    return expr(bp(input, &eq, infix), input);
+}
 
-    // that's still too complex. what's implemented would be marked with @
-    struct token* t = next(input);
-    struct decl_type ret_val;
-    switch (t->t) {
-    // non-recursive versions
-    case t_identifier:
-        ret_val = (struct decl_type){
-            // base case...
-            .t = d_base,
-            .name = strdup(t->str),
-        };
-        // code for special cases : types 2-3 :
-        t = peek(input);
-        if (t->str[0] == '[') {
-            next(input);
-            struct decl_type arr_decl = get_array_decl(input);
-            arr_decl.declarator = xmalloc(sizeof *arr_decl.declarator);
-            *arr_decl.declarator = ret_val;
-            ret_val = arr_decl;
-            break;
-        } else if (t->str[0] == '(') {
-            log_pos_error(stderr, input, t,
-                          "declarator type 3 not supported yet.\n");
-            exit(1);
-        }
-        break;
-    case t_punctuator:
-        // strcmp required for long punctuators
-        if (0 == strcmp("*", t->str)) {
-            ret_val = (struct decl_type){
-                .t = d_ptr,
-                .is_const = false,
-                .is_restrict = false,
-                .is_volatile = false,
-            };
-
-            while (peek(input)->t == t_keyword) {
-                t = next(input);
-                if (0 == strcmp(t->str, "const")) {
-                    ret_val.is_const = true;
-                } else if (0 == strcmp(t->str, "restrict")) {
-                    ret_val.is_restrict = true;
-                } else if (0 == strcmp(t->str, "volatile")) {
-                    ret_val.is_volatile = true;
-                } else {
-                    log_error("unexpected token %s in pointer declarator\n",
-                              t->str);
-                }
-            }
-            struct decl_type tmp = get_declarator(input);
-            tmp.declarator = xmalloc(sizeof *ret_val.declarator);
-            *tmp.declarator = ret_val;
-            ret_val = tmp;
-            break;
-        } else if (0 == strcmp("[", t->str)) {
-            // [] before identifier
-            ret_val = get_array_decl(input);
-            ret_val.declarator = xmalloc(sizeof *ret_val.declarator);
-            *ret_val.declarator = get_declarator(input);
-            break;
-        } else if (0 == strcmp("(", t->str)) {
-            //TODO - impl ()
-            log_error("functions are not supported yet\n");
-            exit(1);
-        } else {
-            log_error("expected identifier, '*', '[' or '(' before '%s'\n",
-                      t->str);
-            exit(1);
-        }
-        break;
-    case t_string:
-    case t_char:
-    case t_float:
-    case t_keyword: //fallthrough
-    case t_EOF:
-    case t_int:
-    case t_bad_token:
-    case t_unknown: //fallthrough
-    default:
-        log_error("expected identifier, '[' or '(' before '%s'\n", t->str);
-        exit(1);
+static inline void parse_type_qualifier_list(struct decl_type* decl_so_far,
+                                             struct context* input) {
+    for (struct token* t = peek(input); t->t == t_keyword; t = peek(input)) {
+#define XX(KEYWORD)                       \
+    if (0 == strcmp(#KEYWORD, t->str)) {  \
+        decl_so_far->is_##KEYWORD = true; \
+        next(input);                      \
+        continue;                         \
     }
-    return ret_val;
+        XX(const);
+        XX(restrict);
+        XX(volatile);
+        break;
+#undef XX
+    }
+}
+
+static inline struct decl_type
+    maybe_array_or_function_decarator(struct decl_type decl_so_far,
+                                      struct context* input);
+
+// given a `direct-declarator`, parse `direct-declarator[...]`
+// array-declarator :=
+// @         direct-declarator * "[" expr(bp("=")) "]"
+//     |     direct-declarator * "[" type-qualifier-list expr(bp("=")) "]"
+//     |     direct-declarator * "[" [type-qualifier-list] "]"
+// @   |     direct-declarator * "[" static expr(bp("=")) "]"
+//     |     direct-declarator * "[" static type-qualifier-list
+//                                 expr(bp("=")) "]"
+//     |     direct-declarator * "[" type-qualifier-list static
+//                                 expr(bp("=")) "]"
+//     |     direct-declarator * "[" [type-qualifier-list] "*" "]"
+// we are at the *
+static inline struct decl_type
+    parse_array_declarator(struct decl_type decl_so_far, struct context* input) {
+    expect_token("[", input);
+    // for now the basic case: we are parsing "array of decl_so_far"
+    // does not work with `int (*foo)[5];`
+    struct decl_type ret = {.t = d_array,
+                            .id = decl_so_far.id,
+                            .is_const = false,
+                            .is_restrict = false,
+                            .is_volatile = false,
+                            .is_static = false,
+                            .size = NULL,
+                            .declarator = xmalloc(sizeof ret)};
+
+#define GET_STATIC()                               \
+    if (0 == strcmp("static", peek(input)->str)) { \
+        ret.is_static = true;                      \
+        next(input);                               \
+    }
+
+    GET_STATIC();
+    parse_type_qualifier_list(&ret, input);
+    GET_STATIC();
+
+    struct token* t = peek(input);
+    if (0 != memcmp("]", t->str, 2))
+        ret.size = parse_assignment_expression(input);
+
+    expect_token("]", input);
+
+    decl_so_far.id = NULL;
+    *ret.declarator = maybe_array_or_function_decarator(decl_so_far, input);
+
+    return ret;
+}
+
+// function-declarator:
+//           direct-declarator "(" parameter-type-listopt ")"
+static inline struct decl_type
+    parse_function_declarator(struct decl_type decl_so_far,
+                              struct context* input) {
+    expect_token("(", input);
+    log_pos_error(stderr, input, peek(input),
+                  "function declarators not supported yet\n");
+    exit(1);
+}
+
+static inline void parse_attribute_specifier_sequence(struct context* input) {
+    expect_token("[", input);
+    expect_token("[", input);
+    log_warn("attributes are not supported in dcc\n");
+    struct token* t;
+    for (t = peek(input); memcmp(t->str, "]", 2) != 0; t = peek(input))
+        next(input);
+    expect_token("]", input);
+    expect_token("]", input);
+}
+
+// direct-declarator * "[" ...
+// direct-declarator * "(" ...
+// direct-declarator *
+// we are at the *
+static inline struct decl_type
+    maybe_array_or_function_decarator(struct decl_type decl_so_far,
+                                      struct context* input) {
+    struct token* t = peek(input);
+    if (t->str[0] == '[') return parse_array_declarator(decl_so_far, input);
+    else if (t->str[0] == '(')
+        return parse_function_declarator(decl_so_far, input);
+    else
+        return decl_so_far;
+}
+
+// declarator - the type so far
+static inline struct decl_type
+    get_direct_declarator(struct context* input, struct decl_type declarator);
+struct decl_type get_declarator(struct context* input) {
+    // declarator :=
+    // @         pointer direct-declarator
+    // @         direct-declarator
+    // pointer:
+    // @         "*" [attribute-specifier-sequence] [type-qualifier-list]
+    // @         "*" [attribute-specifier-sequence] [type-qualifier-list] pointer
+    // @ = works. # = work in progress. @! = only simple case works.
+    // as a first step, I would ignore attribute-specifiers, [[ ]]
+    struct decl_type declarator = {.t = d_base, .id = NULL};
+
+    for (struct token* t = peek(input); t->str[0] == '*'; t = peek(input)) {
+        expect_token("*", input);
+        struct decl_type* tmp = xmalloc(sizeof declarator);
+        *tmp = declarator;
+        declarator = (struct decl_type){.t = d_ptr,
+                                        .id = NULL,
+                                        .is_const = false,
+                                        .is_restrict = false,
+                                        .is_volatile = false,
+                                        .is_static = false,
+                                        .declarator = tmp};
+        t = peek(input);
+        if (t->t == t_keyword) parse_type_qualifier_list(&declarator, input);
+        else if (t->t == t_punctuator) {
+            parse_attribute_specifier_sequence(input);
+        }
+    }
+
+    return get_direct_declarator(input, declarator);
+}
+
+static inline struct decl_type
+    get_direct_declarator(struct context* input, struct decl_type ret_type) {
+    // direct-declarator :=
+    // @         identifier [attribute-specifier-sequence]
+    // @!        "(" declarator ")"
+    //           array-declarator [attribute-specifier-sequence]
+    //           function-declarator [attribute-specifier-sequence]
+    //
+    // array-declarator :=
+    // @         direct-declarator "[" [type-qualifier-list]
+    //                                 [expr(bp("="))] "]"
+    // @   |     direct-declarator "[" static [type-qualifier-list]
+    //                                 expr(bp("=")) "]"
+    // @   |     direct-declarator "[" type-qualifier-list static
+    //                                 expr(bp("=")) "]"
+    //     |     direct-declarator "[" [type-qualifier-list] * "]"
+    //
+    // function-declarator:
+    //           direct-declarator "(" parameter-type-listopt ")"
+    struct token* t = next(input);
+    switch (t->t) {
+    default: goto unexpected_token;
+    case t_punctuator:
+        if (memcmp("(", t->str, 2) == 0) {
+            ret_type = get_declarator(input);
+            expect_token(")", input);
+            break;
+        }
+        goto unexpected_token;
+    case t_identifier: ret_type.id = strdup(t->str); break;
+    }
+    return maybe_array_or_function_decarator(ret_type, input);
+
+unexpected_token:
+    log_pos_error(stderr, input, t, "unexpected token %s\n", t->str);
+    exit(1);
 }
 
 struct init_declaration_list* parse_declaration(struct context* input) {
-    // declaration := declaration-specifiers [init-declarator-list] ";"
+    // declaration :=
+    // @         declaration-specifiers [init-declarator-list] ";"
 
     struct init_declaration_list* ret_val = xmalloc(sizeof *ret_val);
     *ret_val = (struct init_declaration_list){
@@ -343,12 +431,11 @@ struct init_declaration_list* parse_declaration(struct context* input) {
         }
 
         // populate the declaration
+        struct decl_type declarator = get_declarator(input);
         ret_val->vars[ret_val->size - 1] = (struct c_var){
-            .specifiers = *specs,
-            .t = get_declarator(input),
-        };
+            .specifiers = *specs, .t = declarator, .name = declarator.id};
 
-		trailing_comma = false;
+        trailing_comma = false;
 
         // get the name of the variable
         struct decl_type* d;
@@ -411,7 +498,6 @@ static inline void print_decl_type(struct decl_type* d_t, int indent) {
         assert(d_t->declarator);
         if (d_t->declarator->t == d_ptr || d_t->declarator->t == d_array) {
             // print the list inverted
-            print_decl_type(d_t->declarator, indent + 1);
         } else if (d_t->declarator->t == d_base) {
             // just print the current thing and finish it
         } else {
@@ -427,12 +513,12 @@ static inline void print_decl_type(struct decl_type* d_t, int indent) {
 
         printf(d_t->t == d_array ? "array " : "pointer ");
         if (d_t->t == d_array && d_t->size) {
-            printf("of size \n");
+            printf("of size\n");
             print_expr_ast(d_t->size, indent + 1);
         }
         printf(d_t->t == d_array ? "of:\n" : "to:\n");
         for (int i = 0; i < indent; i++) printf("\t");
-        break;
+        print_decl_type(d_t->declarator, indent + 1);
     case d_base: break; // no point in printing the name
     }
 }
@@ -441,7 +527,7 @@ void print_declaration(struct init_declaration_list* decls, int) {
     for (size_t i = 0; i < decls->size; i++) {
         struct c_var* var = &decls->vars[i];
         // print name:
-        /*    print_decl_type(struct decl_type* d_t, int indent)    */
+        printf("%s is ", var->name);
         // print specifiers
         struct decl_specifiers specs = var->specifiers;
         char* storage = (char*[]){

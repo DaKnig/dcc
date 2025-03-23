@@ -1,1 +1,1 @@
-int [5] foo;
+int foo[5];

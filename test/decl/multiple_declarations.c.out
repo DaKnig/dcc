@@ -1,0 +1,11 @@
+tree representation of multiple_declarations.c.in:
+x is a 
+i16 ;
+y is a 
+f32 =
+|   -> (int)9
+;
+z is a 
+f32 =
+|   -> (int)10
+;
