@@ -1,7 +1,7 @@
 #include "statement_parser.h"
 
 #include "decl_parser.h"
-#include "new_tokenizer.h"
+#include "tokenizer.h"
 #include "pratt.h"
 #include "util.h"
 

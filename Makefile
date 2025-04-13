@@ -3,7 +3,7 @@ TESTSDIR := test
 BINDIR := bin
 FUZZDIR := fuzz
 
-OBJS := pratt.o log.o atom.o statement_parser.o new_tokenizer.o \
+OBJS := pratt.o log.o atom.o statement_parser.o tokenizer.o \
 		decl_parser.o context.o top_level_parser.o
 
 OBJS := $(addprefix $(SRCDIR)/,$(OBJS))
@@ -36,7 +36,7 @@ unit-tests: $(TESTER) $(TESTS)
 $(BINDIR)/test_logging: test/test_logging.c log.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
-$(BINDIR)/tokenizer_test: test/tokenizer_test.c new_tokenizer.o log.o context.o | $(BINDIR)/
+$(BINDIR)/tokenizer_test: test/tokenizer_test.c tokenizer.o log.o context.o | $(BINDIR)/
 	$(CC) $(CFLAGS) -o $@ $^ -I"$(SRCDIR)"
 
 $(BINDIR)/simple_decl: test/simple_decl.c $(OBJS) | $(BINDIR)/

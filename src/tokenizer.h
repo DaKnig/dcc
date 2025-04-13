@@ -1,5 +1,5 @@
-#ifndef NEW_TOKENIZER
-#define NEW_TOKENIZER
+#ifndef TOKENIZER
+#define TOKENIZER
 
 #include <stdio.h>
 

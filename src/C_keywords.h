@@ -1,5 +1,5 @@
 
-char keywords[][16] = {
+const char keywords[][16] = {
     "auto",     "extern",   "short",    "while",
     "break",    "float",    "signed",   "_Alignas",
     "case",     "for",      "sizeof",   "_Alignof",

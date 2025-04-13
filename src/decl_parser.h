@@ -26,7 +26,7 @@
   the base of the system is the type system, the type struct.
 */
 
-#include "new_tokenizer.h"
+#include "tokenizer.h"
 #include "util.h"
 
 #include <stdbool.h>

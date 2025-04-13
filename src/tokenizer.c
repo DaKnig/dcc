@@ -1,7 +1,7 @@
 //TOOD:
 //- string interning
 
-#include "new_tokenizer.h"
+#include "tokenizer.h"
 
 #include "C_keywords.h"
 #include "context.h"

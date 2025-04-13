@@ -1,7 +1,7 @@
 #ifndef CONTEXT_H_
 #define CONTEXT_H_
 
-#include "new_tokenizer.h"
+#include "tokenizer.h"
 
 //struct context;
 struct context {

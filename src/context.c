@@ -1,7 +1,7 @@
 #include "context.h"
 
 #include "log.h"
-#include "new_tokenizer.h"
+#include "tokenizer.h"
 #include "util.h"
 
 #include <assert.h>
